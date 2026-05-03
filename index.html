@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#020403" />
+  <title>SMC SafeFlex</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div>
+        <h1>SMC <span>SafeFlex</span></h1>
+        <p>V75 • M5 • LIVE</p>
+      </div>
+      <button class="bell">🔔<b>3</b></button>
+    </header>
+
+    <section class="signal-card">
+      <div>
+        <h2>BUY SIGNAL</h2>
+        <p>CONFIDENCE</p>
+        <strong>84%</strong>
+        <em>STATUS: WAITING FOR ENTRY</em>
+      </div>
+      <div class="signal-icon">↗</div>
+    </section>
+
+    <section class="card levels">
+      <div><span>ENTRY ZONE</span><b>4460 – 4480</b></div>
+      <div><span>STOP LOSS</span><b class="red">4455</b></div>
+      <div><span>TAKE PROFIT 1 (TP1)</span><b>4575</b></div>
+      <div><span>TAKE PROFIT 2 (TP2)</span><b>4635</b></div>
+    </section>
+
+    <section class="card">
+      <h3>CONFIRMATIONS (4/5)</h3>
+      <ul class="checks">
+        <li><b>✓</b><span>CHoCH</span><em>CONFIRMED</em></li>
+        <li><b>✓</b><span>BOS</span><em>CONFIRMED</em></li>
+        <li><b>✓</b><span>OB TOUCH</span><em class="pending">PENDING</em></li>
+        <li><b>✓</b><span>INDUCEMENT</span><em>CONFIRMED</em></li>
+        <li><b class="off">○</b><span>FVG (OPTIONAL)</span><em class="muted">NOT DETECTED</em></li>
+      </ul>
+    </section>
+
+    <section class="card account">
+      <div class="heading">
+        <h3>ACCOUNT SUMMARY</h3>
+        <button>Today⌄</button>
+      </div>
+      <div class="grid3">
+        <div><span>BALANCE</span><b>$1,200</b></div>
+        <div><span>TODAY PNL</span><b class="green">+$85</b></div>
+        <div><span>TRADES</span><b>1 / 3</b></div>
+      </div>
+    </section>
+
+    <section class="risk">
+      <h3>RISK STATUS</h3>
+      <div class="risk-row">
+        <div>⊕<span>SAFE MODE<br><b>ACTIVE</b></span></div>
+        <div>⊕<span>MAX TRADES<br><b>OK</b></span></div>
+        <div>⊕<span>DRAWDOWN<br><b>OK</b></span></div>
+      </div>
+    </section>
+
+    <section class="notifications">
+      <h3>EXACT PUSH MESSAGES</h3>
+      <div class="notif-grid">
+        <article><small>SMC SafeFlex · now</small><h4>BUY SETUP DETECTED</h4><p>Confidence: 84%<br>Zone: 4460 - 4480<br>Waiting for OB mitigation...</p></article>
+        <article><small>SMC SafeFlex · now</small><h4>BUY EXECUTED</h4><p>Entry: 4472<br>SL: 4455<br>TP1: 4575<br>TP2: 4635</p></article>
+        <article><small>SMC SafeFlex · now</small><h4>TP1 HIT</h4><p>Profit secured ✅<br>Re-entry mode activated<br>Waiting for new OB...</p></article>
+        <article><small>SMC SafeFlex · now</small><h4>RE-ENTRY SETUP</h4><p>New OB detected<br>Zone: 4520 - 4530<br>Waiting for mitigation...</p></article>
+        <article><small>SMC SafeFlex · now</small><h4>TP2 HIT — COMPLETE</h4><p>Cycle closed ✅<br>Trend fully captured<br>Great job!</p></article>
+      </div>
+    </section>
+
+    <nav>
+      <a class="active">⌂<span>Dashboard</span></a>
+      <a>⌁<span>Signals</span></a>
+      <a>⊕<span>Trades</span></a>
+      <a>▣<span>History</span></a>
+      <a>⚙<span>Settings</span></a>
+    </nav>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
