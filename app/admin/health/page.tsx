@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +13,9 @@ function preview(value: string | undefined): string {
   const head = trimmed.slice(0, 12);
   const tail = trimmed.slice(-6);
   const whitespaceWarning =
-    len !== trimmedLen ? ` ⚠ has ${len - trimmedLen} char(s) of whitespace` : "";
+    len !== trimmedLen
+      ? ` ⚠ has ${len - trimmedLen} char(s) of whitespace`
+      : "";
   return `${head}…${tail} (len=${len}${whitespaceWarning})`;
 }
 
@@ -25,7 +28,10 @@ async function runChecks(): Promise<Check[]> {
 
   checks.push({
     label: "NEXT_PUBLIC_SUPABASE_URL",
-    ok: Boolean(url) && url === url?.trim() && /^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(url ?? ""),
+    ok:
+      Boolean(url) &&
+      url === url?.trim() &&
+      /^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(url ?? ""),
     detail: url ? `${url} (len=${url.length})` : "(not set)",
   });
   checks.push({
@@ -35,7 +41,10 @@ async function runChecks(): Promise<Check[]> {
   });
   checks.push({
     label: "ANTHROPIC_API_KEY",
-    ok: Boolean(anthropic) && anthropic === anthropic?.trim(),
+    ok:
+      Boolean(anthropic) &&
+      anthropic === anthropic?.trim() &&
+      (anthropic?.startsWith("sk-ant-") ?? false),
     detail: preview(anthropic),
   });
 
@@ -94,7 +103,16 @@ async function runChecks(): Promise<Check[]> {
   return checks;
 }
 
-export default async function HealthPage() {
+export default async function AdminHealthPage({
+  searchParams,
+}: {
+  searchParams: { key?: string };
+}) {
+  const expected = process.env.ADMIN_SECRET;
+  if (!expected || searchParams.key !== expected) {
+    notFound();
+  }
+
   const checks = await runChecks();
   const allOk = checks.every((c) => c.ok);
 
@@ -118,14 +136,14 @@ export default async function HealthPage() {
               <span
                 aria-hidden
                 className={
-                  "inline-block h-2.5 w-2.5 rounded-full shrink-0 " +
+                  "inline-block h-2.5 w-2.5 shrink-0 rounded-full " +
                   (c.ok ? "bg-emerald-500" : "bg-red-500")
                 }
               />
               <span className="break-all">{c.label}</span>
             </span>
             {c.detail && (
-              <span className="mt-1 pl-4 text-xs text-foreground/60 break-all font-mono">
+              <span className="mt-1 break-all pl-4 font-mono text-xs text-foreground/60">
                 {c.detail}
               </span>
             )}

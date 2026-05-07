@@ -1,13 +1,29 @@
-export default function InterviewPage() {
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import Nav from "@/components/Nav";
+import InterviewClient from "./InterviewClient";
+
+export const dynamic = "force-dynamic";
+
+export default async function InterviewPage() {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("target_role, industry, experience_level")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!profile) redirect("/setup");
+
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center px-6 py-12">
-      <h1 className="mb-2 text-2xl font-semibold">Mock interview</h1>
-      <p className="mb-6 text-sm text-foreground/60">
-        TODO: fetch 5 questions from <code>/api/interview/questions</code>{" "}
-        (Claude Sonnet), present one at a time, collect typed answers, then
-        POST to <code>/api/interview/feedback</code> and route to{" "}
-        <code>/feedback</code>.
-      </p>
-    </main>
+    <>
+      <Nav />
+      <InterviewClient profile={profile} />
+    </>
   );
 }

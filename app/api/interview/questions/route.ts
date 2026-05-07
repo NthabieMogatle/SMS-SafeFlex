@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { anthropic, CLAUDE_MODEL } from "@/lib/anthropic";
+import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
@@ -11,6 +12,14 @@ const RequestSchema = z.object({
 });
 
 export async function POST(req: Request) {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const parsed = RequestSchema.safeParse(await req.json());
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
@@ -18,22 +27,46 @@ export async function POST(req: Request) {
   const { role, industry, experienceLevel } = parsed.data;
 
   const system =
-    "You are an expert interview coach. Generate concise, role-specific interview questions. Respond ONLY with a JSON object of the form {\"questions\": string[]} containing exactly 5 questions.";
+    'You are an expert interview coach. Generate concise, role-specific interview questions. Reply with ONLY a JSON object of the form {"questions": string[]} containing exactly 5 questions. No prose, no code fences.';
 
-  const user = `Generate 5 mock interview questions for a ${experienceLevel}-level ${role} candidate in the ${industry} industry. Mix behavioral and role-specific questions.`;
+  const userPrompt = `Generate 5 mock interview questions for a ${experienceLevel}-level ${role} candidate in the ${industry} industry. Mix behavioral and role-specific questions.`;
 
-  const message = await anthropic.messages.create({
-    model: CLAUDE_MODEL,
-    max_tokens: 1024,
-    system,
-    messages: [{ role: "user", content: user }],
-  });
+  let message;
+  try {
+    message = await anthropic.messages.create({
+      model: CLAUDE_MODEL,
+      max_tokens: 1024,
+      system,
+      messages: [
+        { role: "user", content: userPrompt },
+        { role: "assistant", content: "{" },
+      ],
+    });
+  } catch (e) {
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : String(e) },
+      { status: 502 },
+    );
+  }
 
   const text = message.content
     .filter((b): b is { type: "text"; text: string } => b.type === "text")
     .map((b) => b.text)
     .join("");
 
-  const questions = JSON.parse(text).questions as string[];
-  return NextResponse.json({ questions });
+  try {
+    const parsedJson = JSON.parse("{" + text) as { questions: string[] };
+    if (!Array.isArray(parsedJson.questions) || parsedJson.questions.length === 0) {
+      throw new Error("Model returned no questions.");
+    }
+    return NextResponse.json({ questions: parsedJson.questions });
+  } catch (e) {
+    return NextResponse.json(
+      {
+        error: `Failed to parse model output: ${e instanceof Error ? e.message : String(e)}`,
+        raw: text.slice(0, 400),
+      },
+      { status: 502 },
+    );
+  }
 }
