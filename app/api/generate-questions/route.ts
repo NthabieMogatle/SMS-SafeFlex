@@ -26,10 +26,10 @@ export async function POST(req: Request) {
   }
   const { role, industry, experienceLevel } = parsed.data;
 
+  // PLACEHOLDER PROMPT — replace with the production prompt in the next step.
   const system =
-    'You are an expert interview coach. Generate concise, role-specific interview questions. Reply with ONLY a JSON object of the form {"questions": string[]} containing exactly 5 questions. No prose, no code fences.';
-
-  const userPrompt = `Generate 5 mock interview questions for a ${experienceLevel}-level ${role} candidate in the ${industry} industry. Mix behavioral and role-specific questions.`;
+    'Reply with ONLY a JSON object {"questions": string[]} containing exactly 5 interview questions. No prose, no code fences.';
+  const userPrompt = `Generate 5 interview questions for a ${experienceLevel}-level ${role} candidate in the ${industry} industry.`;
 
   let message;
   try {
@@ -56,7 +56,10 @@ export async function POST(req: Request) {
 
   try {
     const parsedJson = JSON.parse("{" + text) as { questions: string[] };
-    if (!Array.isArray(parsedJson.questions) || parsedJson.questions.length === 0) {
+    if (
+      !Array.isArray(parsedJson.questions) ||
+      parsedJson.questions.length === 0
+    ) {
       throw new Error("Model returned no questions.");
     }
     return NextResponse.json({ questions: parsedJson.questions });

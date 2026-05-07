@@ -2,11 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 type Profile = {
   target_role: string;
   industry: string;
   experience_level: "entry" | "mid" | "senior";
+};
+
+type ScoreResult = {
+  score: number;
+  strengths: string[];
+  weaknesses: string[];
+  rewrite: string;
 };
 
 export default function InterviewClient({ profile }: { profile: Profile }) {
@@ -23,7 +31,7 @@ export default function InterviewClient({ profile }: { profile: Profile }) {
     let cancelled = false;
     async function fetchQuestions() {
       try {
-        const res = await fetch("/api/interview/questions", {
+        const res = await fetch("/api/generate-questions", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -81,24 +89,51 @@ export default function InterviewClient({ profile }: { profile: Profile }) {
     setError(null);
     const finalAnswers = [...answers];
     finalAnswers[currentIndex] = currentAnswer;
+
     try {
-      const res = await fetch("/api/interview/feedback", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          role: profile.target_role,
-          industry: profile.industry,
-          experienceLevel: profile.experience_level,
-          answers: questions.map((q, i) => ({
-            question: q,
-            answer: finalAnswers[i] ?? "",
-          })),
+      const scoreResults = await Promise.all(
+        questions.map(async (q, i) => {
+          const res = await fetch("/api/score-answer", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ question: q, answer: finalAnswers[i] ?? "" }),
+          });
+          if (!res.ok) {
+            const body = await res.text();
+            throw new Error(`Q${i + 1} scoring failed: (${res.status}) ${body}`);
+          }
+          return (await res.json()) as ScoreResult;
         }),
+      );
+
+      const items = questions.map((q, i) => ({
+        question: q,
+        score: Number(scoreResults[i].score) || 0,
+        strengths: scoreResults[i].strengths ?? [],
+        weaknesses: scoreResults[i].weaknesses ?? [],
+        rewrite: scoreResults[i].rewrite ?? "",
+      }));
+
+      const avg =
+        items.reduce((sum, it) => sum + it.score, 0) / items.length;
+
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not signed in.");
+
+      const { error: insertError } = await supabase.from("interviews").insert({
+        user_id: user.id,
+        questions,
+        answers: finalAnswers,
+        feedback: items,
+        score: Number(avg.toFixed(2)),
       });
-      if (!res.ok) {
-        const body = await res.text();
-        throw new Error(`(${res.status}) ${body}`);
+      if (insertError) {
+        throw new Error(`Saving interview failed: ${insertError.message}`);
       }
+
       router.push("/feedback");
       router.refresh();
     } catch (e) {
@@ -118,7 +153,9 @@ export default function InterviewClient({ profile }: { profile: Profile }) {
   if (error && !questions) {
     return (
       <main className="mx-auto flex min-h-screen max-w-2xl flex-col items-center justify-center gap-3 px-6 py-12 text-center">
-        <h1 className="text-xl font-semibold">Couldn&apos;t generate questions</h1>
+        <h1 className="text-xl font-semibold">
+          Couldn&apos;t generate questions
+        </h1>
         <p className="break-all text-sm text-red-500">{error}</p>
         <p className="text-xs text-foreground/60">
           Most likely cause: ANTHROPIC_API_KEY in Vercel is missing or invalid.
