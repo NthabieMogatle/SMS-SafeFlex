@@ -1,0 +1,10 @@
+{
+  "name": "Career OS — Mock Interview",
+  "short_name": "Career OS",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b1020",
+  "theme_color": "#0b1020",
+  "description": "Mock interview coach: get instant feedback and turn weak answers into strong ones."
+}

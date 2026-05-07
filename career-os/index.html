@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1020" />
+  <title>Career OS — Mock Interview</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div>
+        <h1>Career <span>OS</span></h1>
+        <p id="subTitle">Mock Interview Coach</p>
+      </div>
+      <button class="icon-btn" onclick="showPage('settings')" title="Settings">⚙</button>
+    </header>
+
+    <!-- ============== SETUP ============== -->
+    <section id="setup" class="page active">
+      <section class="hero">
+        <h2>Land your next role.</h2>
+        <p>Run a mock interview, get instant feedback, and turn weak answers into strong ones.</p>
+      </section>
+
+      <section class="card">
+        <h3>Start a Mock Interview</h3>
+
+        <label>Your name <span class="muted">(optional)</span></label>
+        <input id="userName" placeholder="e.g. Sarah" />
+
+        <label>Target role</label>
+        <input id="targetRole" placeholder="e.g. Marketing Manager" />
+
+        <label>Target company <span class="muted">(optional)</span></label>
+        <input id="targetCompany" placeholder="e.g. Google" />
+
+        <label>Interview style</label>
+        <select id="interviewStyle">
+          <option value="behavioral">Behavioral (STAR)</option>
+          <option value="role-specific">Role-specific</option>
+          <option value="mixed" selected>Mixed</option>
+        </select>
+
+        <label>Number of questions</label>
+        <select id="questionCount">
+          <option>3</option>
+          <option selected>5</option>
+          <option>7</option>
+        </select>
+
+        <button class="primary" onclick="startInterview()">Start Mock Interview →</button>
+        <p id="setupHint" class="hint"></p>
+      </section>
+
+      <section class="card subtle">
+        <h3>How it works</h3>
+        <ol class="steps">
+          <li>Tell us your target role.</li>
+          <li>Answer 5 real interview questions.</li>
+          <li>Get a feedback report — filler words, length, specificity, STAR structure.</li>
+          <li>Practice weak answers until they're strong.</li>
+        </ol>
+      </section>
+    </section>
+
+    <!-- ============== INTERVIEW ============== -->
+    <section id="interview" class="page">
+      <div class="progress">
+        <div class="progress-bar"><span id="progressFill" style="width:0%"></span></div>
+        <p id="progressText">Question 1 of 5</p>
+      </div>
+
+      <section class="card question-card">
+        <p class="qmeta" id="qMeta">Behavioral</p>
+        <h2 id="qText">Loading question...</h2>
+        <p class="hint" id="qHint"></p>
+      </section>
+
+      <section class="card">
+        <label>Your answer</label>
+        <textarea id="answerBox" rows="10" placeholder="Take your time. Aim for 90–180 seconds spoken (about 200–400 words)."></textarea>
+        <div class="answer-meta">
+          <span id="wordCount">0 words</span>
+          <span id="readTime">~0s read</span>
+        </div>
+        <div class="row">
+          <button class="ghost" onclick="skipQuestion()">Skip</button>
+          <button class="primary" onclick="submitAnswer()">Submit Answer →</button>
+        </div>
+      </section>
+    </section>
+
+    <!-- ============== FEEDBACK ============== -->
+    <section id="feedback" class="page">
+      <section class="card">
+        <p class="qmeta" id="fbMeta">Question 1</p>
+        <h2 id="fbQuestion"></h2>
+      </section>
+
+      <section class="card score-card">
+        <div class="score-ring" id="fbRing">
+          <strong id="fbScore">0</strong>
+          <span>/ 100</span>
+        </div>
+        <h3 id="fbVerdict">Calculating...</h3>
+        <p id="fbSummary" class="muted"></p>
+      </section>
+
+      <section class="card">
+        <h3>What you did well</h3>
+        <ul id="fbStrengths" class="checks"></ul>
+      </section>
+
+      <section class="card">
+        <h3>Where to improve</h3>
+        <ul id="fbWeaknesses" class="warns"></ul>
+      </section>
+
+      <section class="card">
+        <h3>Your answer</h3>
+        <p id="fbYourAnswer" class="quote"></p>
+      </section>
+
+      <div class="row">
+        <button class="ghost" onclick="practiceCurrent()">Rewrite this answer</button>
+        <button class="primary" onclick="nextQuestion()">Next →</button>
+      </div>
+    </section>
+
+    <!-- ============== REPORT ============== -->
+    <section id="report" class="page">
+      <section class="card score-card">
+        <div class="score-ring big" id="reportRing">
+          <strong id="reportScore">0</strong>
+          <span>/ 100</span>
+        </div>
+        <h2 id="reportTitle">Interview Report</h2>
+        <p id="reportSummary" class="muted"></p>
+      </section>
+
+      <section class="card">
+        <h3>Performance breakdown</h3>
+        <div id="reportBreakdown"></div>
+      </section>
+
+      <section class="card">
+        <h3>Question-by-question</h3>
+        <ul id="reportQuestions" class="qlist"></ul>
+      </section>
+
+      <section class="card">
+        <h3>Recommended next steps</h3>
+        <ul id="reportNextSteps" class="checks"></ul>
+      </section>
+
+      <div class="row">
+        <button class="ghost" onclick="restart()">New interview</button>
+        <button class="primary" onclick="practiceWeakest()">Practice weakest answer →</button>
+      </div>
+    </section>
+
+    <!-- ============== PRACTICE / REWRITE ============== -->
+    <section id="practice" class="page">
+      <section class="card">
+        <p class="qmeta">Question</p>
+        <h2 id="prQuestion"></h2>
+      </section>
+
+      <section class="card">
+        <h3>Your answer</h3>
+        <p id="prYourAnswer" class="quote"></p>
+      </section>
+
+      <section class="card highlight">
+        <h3>Improved version</h3>
+        <p id="prImproved" class="quote improved"></p>
+        <p class="muted" id="prImprovedNote"></p>
+      </section>
+
+      <section class="card">
+        <h3>Try again</h3>
+        <textarea id="prRetry" rows="8" placeholder="Rewrite your own answer using the improvements above..."></textarea>
+        <div class="row">
+          <button class="ghost" onclick="backToReport()">Back to report</button>
+          <button class="primary" onclick="scoreRetry()">Score this version →</button>
+        </div>
+        <p id="prRetryFeedback" class="hint"></p>
+      </section>
+    </section>
+
+    <!-- ============== SETTINGS ============== -->
+    <section id="settings" class="page">
+      <section class="card">
+        <h2 class="page-title">Settings</h2>
+
+        <label>Claude API key <span class="muted">(optional)</span></label>
+        <input id="apiKey" type="password" placeholder="sk-ant-..." />
+        <p class="hint">Stored only in your browser. When set, questions and feedback are generated by Claude. Without a key, Career OS uses a built-in question bank and rubric scorer — works fully offline.</p>
+
+        <label>Model</label>
+        <select id="apiModel">
+          <option value="claude-opus-4-7" selected>Claude Opus 4.7 (best)</option>
+          <option value="claude-sonnet-4-6">Claude Sonnet 4.6 (balanced)</option>
+          <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (fastest)</option>
+        </select>
+
+        <button class="primary" onclick="saveSettings()">Save Settings</button>
+        <p id="settingsHint" class="hint"></p>
+      </section>
+
+      <section class="card subtle">
+        <h3>About Career OS</h3>
+        <p class="muted">Build 1 — Mock Interview MVP. Coming soon: voice answers (Build 2), per-company question banks (Build 3), application tracker (Build 4), salary negotiation coach (Build 5), and a coach/agency tier (Build 6).</p>
+      </section>
+
+      <div class="row">
+        <button class="ghost" onclick="showPage('setup')">← Back</button>
+      </div>
+    </section>
+
+    <nav>
+      <a id="nav-setup" class="active" onclick="showPage('setup')">▶<span>Start</span></a>
+      <a id="nav-interview" onclick="showPage('interview')">✎<span>Interview</span></a>
+      <a id="nav-report" onclick="showPage('report')">▣<span>Report</span></a>
+      <a id="nav-practice" onclick="showPage('practice')">↻<span>Practice</span></a>
+      <a id="nav-settings" onclick="showPage('settings')">⚙<span>Settings</span></a>
+    </nav>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
