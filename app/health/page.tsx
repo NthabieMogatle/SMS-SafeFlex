@@ -4,6 +4,18 @@ export const dynamic = "force-dynamic";
 
 type Check = { label: string; ok: boolean; detail?: string };
 
+function preview(value: string | undefined): string {
+  if (!value) return "(not set)";
+  const trimmed = value.trim();
+  const len = value.length;
+  const trimmedLen = trimmed.length;
+  const head = trimmed.slice(0, 12);
+  const tail = trimmed.slice(-6);
+  const whitespaceWarning =
+    len !== trimmedLen ? ` ⚠ has ${len - trimmedLen} char(s) of whitespace` : "";
+  return `${head}…${tail} (len=${len}${whitespaceWarning})`;
+}
+
 async function runChecks(): Promise<Check[]> {
   const checks: Check[] = [];
 
@@ -11,9 +23,21 @@ async function runChecks(): Promise<Check[]> {
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const anthropic = process.env.ANTHROPIC_API_KEY;
 
-  checks.push({ label: "NEXT_PUBLIC_SUPABASE_URL set", ok: Boolean(url) });
-  checks.push({ label: "NEXT_PUBLIC_SUPABASE_ANON_KEY set", ok: Boolean(key) });
-  checks.push({ label: "ANTHROPIC_API_KEY set", ok: Boolean(anthropic) });
+  checks.push({
+    label: "NEXT_PUBLIC_SUPABASE_URL",
+    ok: Boolean(url) && url === url?.trim() && /^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(url ?? ""),
+    detail: url ? `${url} (len=${url.length})` : "(not set)",
+  });
+  checks.push({
+    label: "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    ok: Boolean(key) && key === key?.trim(),
+    detail: preview(key),
+  });
+  checks.push({
+    label: "ANTHROPIC_API_KEY",
+    ok: Boolean(anthropic) && anthropic === anthropic?.trim(),
+    detail: preview(anthropic),
+  });
 
   if (url && key) {
     try {
@@ -35,7 +59,7 @@ async function runChecks(): Promise<Check[]> {
         checks.push({
           label: "profiles table reachable",
           ok: false,
-          detail: `${error.code ?? ""} ${error.message}`.trim(),
+          detail: `code=${error.code ?? "?"} msg=${error.message}`,
         });
       }
 
@@ -55,7 +79,7 @@ async function runChecks(): Promise<Check[]> {
         checks.push({
           label: "interviews table reachable",
           ok: false,
-          detail: `${iErr.code ?? ""} ${iErr.message}`.trim(),
+          detail: `code=${iErr.code ?? "?"} msg=${iErr.message}`,
         });
       }
     } catch (e) {
@@ -94,14 +118,14 @@ export default async function HealthPage() {
               <span
                 aria-hidden
                 className={
-                  "inline-block h-2.5 w-2.5 rounded-full " +
+                  "inline-block h-2.5 w-2.5 rounded-full shrink-0 " +
                   (c.ok ? "bg-emerald-500" : "bg-red-500")
                 }
               />
-              {c.label}
+              <span className="break-all">{c.label}</span>
             </span>
             {c.detail && (
-              <span className="mt-1 pl-4 text-xs text-foreground/60">
+              <span className="mt-1 pl-4 text-xs text-foreground/60 break-all font-mono">
                 {c.detail}
               </span>
             )}
