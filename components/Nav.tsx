@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import LogoutButton from "./LogoutButton";
@@ -13,9 +14,16 @@ export default async function Nav() {
       <div className="mx-auto flex max-w-2xl items-center justify-between px-6 py-3">
         <Link
           href={user ? "/interview" : "/"}
-          className="text-sm font-semibold tracking-tight"
+          className="flex items-center"
+          aria-label="Career OS"
         >
-          Career OS
+          <Image
+            src="/logo/career-os-light.svg"
+            alt="Career OS"
+            width={120}
+            height={28}
+            priority
+          />
         </Link>
         {user ? (
           <div className="flex items-center gap-3">
