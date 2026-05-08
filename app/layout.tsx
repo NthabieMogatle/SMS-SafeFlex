@@ -1,11 +1,26 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
-const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://career-os-alpha.vercel.app";
+function siteUrl(): URL {
+  const raw = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  const candidate =
+    raw && raw.length > 0 ? raw : "https://career-os-alpha.vercel.app";
+  // Tolerate values entered without a protocol (e.g. "career-os.vercel.app")
+  // — `new URL` would otherwise throw at build time and fail metadata gen.
+  const withProtocol = /^https?:\/\//i.test(candidate)
+    ? candidate
+    : `https://${candidate}`;
+  try {
+    return new URL(withProtocol);
+  } catch {
+    return new URL("https://career-os-alpha.vercel.app");
+  }
+}
+
+const SITE_URL = siteUrl();
 
 export const metadata: Metadata = {
-  metadataBase: new URL(SITE_URL),
+  metadataBase: SITE_URL,
   title: {
     default: "Career OS — AI mock interviews that actually help you improve",
     template: "%s · Career OS",
@@ -28,7 +43,7 @@ export const metadata: Metadata = {
     title: "Career OS — AI mock interviews that actually help you improve",
     description:
       "AI mock interviews calibrated to your role, industry, and experience. Scored feedback, rewritten answers, and progress tracking.",
-    url: SITE_URL,
+    url: SITE_URL.toString(),
     locale: "en_US",
   },
   twitter: {
