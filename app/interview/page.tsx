@@ -1,9 +1,15 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Nav from "@/components/Nav";
 import InterviewClient from "./InterviewClient";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Mock interview",
+  description: "Practice your AI-generated mock interview.",
+};
 
 export default async function InterviewPage({
   searchParams,

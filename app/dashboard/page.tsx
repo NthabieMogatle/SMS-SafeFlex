@@ -1,9 +1,15 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import Nav from "@/components/Nav";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Dashboard",
+  description: "Your interview history, score trend, and what to practice next.",
+};
 
 type FeedbackItem = {
   question: string;
@@ -17,6 +23,10 @@ type Interview = {
   id: string;
   score: number | null;
   feedback: FeedbackItem[] | null;
+  themes: string[] | null;
+  role: string | null;
+  industry: string | null;
+  experience_level: string | null;
   created_at: string;
 };
 
@@ -29,11 +39,37 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
+function ScoreBadge({ score }: { score: number }) {
+  const tone =
+    score >= 8
+      ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+      : score >= 5
+        ? "bg-amber-500/15 text-amber-400 border-amber-500/30"
+        : "bg-red-500/15 text-red-400 border-red-500/30";
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-sm font-semibold ${tone}`}
+    >
+      <span
+        aria-hidden
+        className={`h-1.5 w-1.5 rounded-full ${
+          score >= 8
+            ? "bg-emerald-500"
+            : score >= 5
+              ? "bg-amber-500"
+              : "bg-red-500"
+        }`}
+      />
+      {score.toFixed(1)}
+    </span>
+  );
+}
+
 function ScoreChart({ scores }: { scores: number[] }) {
   if (scores.length < 2) {
     return (
       <p className="text-xs text-foreground/50">
-        Complete at least 2 interviews to see a trend.
+        Complete at least 2 interviews to see your trend.
       </p>
     );
   }
@@ -84,7 +120,7 @@ function ScoreChart({ scores }: { scores: number[] }) {
   );
 }
 
-export default async function HistoryPage() {
+export default async function DashboardPage() {
   const supabase = createClient();
   const {
     data: { user },
@@ -93,7 +129,9 @@ export default async function HistoryPage() {
 
   const { data: rows } = await supabase
     .from("interviews")
-    .select("id, score, feedback, created_at")
+    .select(
+      "id, score, feedback, themes, role, industry, experience_level, created_at",
+    )
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(50);
@@ -116,23 +154,42 @@ export default async function HistoryPage() {
         previous5.reduce((s, x) => s + x, 0) / previous5.length
       : null;
 
-  const lastFeedback = interviews[0]?.feedback ?? [];
-  const lastWeaknesses = lastFeedback
-    .flatMap((f) => f.weaknesses ?? [])
-    .slice(0, 4);
+  const lastThemes = interviews[0]?.themes ?? [];
 
   return (
     <>
       <Nav />
       <main className="mx-auto max-w-2xl px-6 py-10">
-        <h1 className="mb-1 text-2xl font-semibold">Your progress</h1>
-        <p className="mb-8 text-sm text-foreground/60">
-          {total === 0
-            ? "No interviews yet. Start your first one below."
-            : `${total} interview${total === 1 ? "" : "s"} so far.`}
-        </p>
+        <div className="mb-8 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold">Dashboard</h1>
+            <p className="mt-1 text-sm text-foreground/60">
+              {total === 0
+                ? "No interviews yet. Start your first one."
+                : `${total} interview${total === 1 ? "" : "s"} so far.`}
+            </p>
+          </div>
+          <Link
+            href="/interview?fresh=1"
+            className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background hover:opacity-90"
+          >
+            Start new interview
+          </Link>
+        </div>
 
-        {total > 0 && (
+        {total === 0 ? (
+          <div className="rounded-md border border-foreground/10 p-8 text-center">
+            <p className="mb-4 text-sm text-foreground/70">
+              Practice your first interview to start tracking progress.
+            </p>
+            <Link
+              href="/setup"
+              className="rounded-md border border-foreground/20 px-4 py-2 text-sm font-medium hover:bg-foreground/5"
+            >
+              Update profile
+            </Link>
+          </div>
+        ) : (
           <>
             <section className="mb-8 grid grid-cols-3 gap-3">
               <Stat label="Average" value={`${avg.toFixed(1)}/10`} />
@@ -184,73 +241,67 @@ export default async function HistoryPage() {
               <ScoreChart scores={[...scores].reverse()} />
             </section>
 
-            {lastWeaknesses.length > 0 && (
-              <section className="mb-8 rounded-md border border-amber-500/20 bg-amber-500/5 p-4">
-                <h2 className="mb-2 text-xs font-medium uppercase tracking-wide text-amber-500">
+            {lastThemes.length > 0 && (
+              <section className="mb-8 rounded-md border border-emerald-500/20 bg-emerald-500/5 p-4">
+                <h2 className="mb-2 text-xs font-medium uppercase tracking-wide text-emerald-500">
                   Practice next
                 </h2>
                 <p className="mb-3 text-xs text-foreground/60">
-                  Based on your most recent feedback, focus on:
+                  From your most recent interview, focus on:
                 </p>
                 <ul className="space-y-2 text-sm">
-                  {lastWeaknesses.map((w, i) => (
+                  {lastThemes.map((t, i) => (
                     <li key={i} className="flex gap-2">
-                      <span aria-hidden className="text-amber-500">
-                        •
+                      <span aria-hidden className="text-emerald-500">
+                        →
                       </span>
-                      <span>{w}</span>
+                      <span>{t}</span>
                     </li>
                   ))}
                 </ul>
               </section>
             )}
 
-            <section className="mb-8">
+            <section>
               <h2 className="mb-2 text-xs font-medium uppercase tracking-wide text-foreground/60">
                 All sessions
               </h2>
               <ul className="space-y-2">
-                {interviews.map((iv, idx) => (
-                  <li
-                    key={iv.id}
-                    className="flex items-center justify-between rounded-md border border-foreground/10 p-3"
-                  >
-                    <div>
-                      <div className="text-sm">
-                        {new Date(iv.created_at).toLocaleString(undefined, {
-                          dateStyle: "medium",
-                          timeStyle: "short",
-                        })}
+                {interviews.map((iv) => {
+                  const score = Number(iv.score ?? 0);
+                  return (
+                    <li
+                      key={iv.id}
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-foreground/10 p-3"
+                    >
+                      <div className="min-w-0">
+                        <div className="text-sm">
+                          {new Date(iv.created_at).toLocaleString(undefined, {
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                          })}
+                        </div>
+                        <div className="truncate text-xs text-foreground/60">
+                          {iv.role ?? "Role unknown"}
+                          {iv.industry ? ` · ${iv.industry}` : ""}
+                        </div>
                       </div>
-                      <div className="text-xs text-foreground/60">
-                        {idx === 0 ? "Most recent" : `${iv.feedback?.length ?? 5} questions`}
+                      <div className="flex items-center gap-3">
+                        <ScoreBadge score={score} />
+                        <Link
+                          href={`/feedback?id=${iv.id}`}
+                          className="rounded-md border border-foreground/20 px-3 py-1.5 text-xs font-medium hover:bg-foreground/5"
+                        >
+                          View feedback
+                        </Link>
                       </div>
-                    </div>
-                    <div className="text-base font-semibold">
-                      {Number(iv.score ?? 0).toFixed(1)}
-                      <span className="text-xs text-foreground/50">/10</span>
-                    </div>
-                  </li>
-                ))}
+                    </li>
+                  );
+                })}
               </ul>
             </section>
           </>
         )}
-
-        <div className="flex gap-3">
-          <Link
-            href="/feedback"
-            className="rounded-md border border-foreground/20 px-4 py-2 text-sm font-medium hover:bg-foreground/5"
-          >
-            Latest feedback
-          </Link>
-          <Link
-            href="/interview?fresh=1"
-            className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background hover:opacity-90"
-          >
-            New interview
-          </Link>
-        </div>
       </main>
     </>
   );

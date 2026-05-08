@@ -20,10 +20,10 @@ export default async function Nav() {
         {user ? (
           <div className="flex items-center gap-3">
             <Link
-              href="/history"
+              href="/dashboard"
               className="text-xs font-medium text-foreground/70 hover:text-foreground"
             >
-              History
+              Dashboard
             </Link>
             <LogoutButton />
           </div>

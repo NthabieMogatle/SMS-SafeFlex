@@ -26,31 +26,38 @@ export default function SetupForm({ initial }: { initial: Initial }) {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      setError("Not signed in.");
+    try {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        setError("Your session expired. Please log in again.");
+        setLoading(false);
+        return;
+      }
+      const { error: upsertError } = await supabase.from("profiles").upsert(
+        {
+          user_id: user.id,
+          target_role: targetRole.trim(),
+          industry: industry.trim(),
+          experience_level: experienceLevel,
+        },
+        { onConflict: "user_id" },
+      );
+      if (upsertError) {
+        setError("We couldn't save your profile. Please try again.");
+        setLoading(false);
+        return;
+      }
+      router.push("/interview");
+      router.refresh();
+    } catch {
+      setError(
+        "Something went wrong. Please check your connection and try again.",
+      );
       setLoading(false);
-      return;
     }
-    const { error: upsertError } = await supabase.from("profiles").upsert(
-      {
-        user_id: user.id,
-        target_role: targetRole.trim(),
-        industry: industry.trim(),
-        experience_level: experienceLevel,
-      },
-      { onConflict: "user_id" },
-    );
-    if (upsertError) {
-      setError(upsertError.message);
-      setLoading(false);
-      return;
-    }
-    router.push("/interview");
-    router.refresh();
   }
 
   return (

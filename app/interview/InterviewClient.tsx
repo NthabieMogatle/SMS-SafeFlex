@@ -82,6 +82,7 @@ export default function InterviewClient({
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [scoredCount, setScoredCount] = useState(0);
+  const [submitStage, setSubmitStage] = useState<"scoring" | "summarizing" | "saving">("scoring");
   const [restoredFromDraft, setRestoredFromDraft] = useState(false);
 
   const initialized = useRef(false);
@@ -120,8 +121,9 @@ export default function InterviewClient({
           }),
         });
         if (!res.ok) {
-          const body = await res.text();
-          throw new Error(`(${res.status}) ${body}`);
+          throw new Error(
+            "We couldn't generate your interview right now. Please try again.",
+          );
         }
         const data = (await res.json()) as { questions: string[] };
         if (cancelled) return;
@@ -136,7 +138,11 @@ export default function InterviewClient({
         });
       } catch (e) {
         if (cancelled) return;
-        setError(e instanceof Error ? e.message : String(e));
+        setError(
+          e instanceof Error
+            ? e.message
+            : "Something went wrong. Please try again.",
+        );
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -199,6 +205,7 @@ export default function InterviewClient({
     setSubmitting(true);
     setError(null);
     setScoredCount(0);
+    setSubmitStage("scoring");
 
     const finalAnswers = [...answers];
     finalAnswers[currentIndex] = currentAnswer;
@@ -212,8 +219,9 @@ export default function InterviewClient({
             body: JSON.stringify({ question: q, answer: finalAnswers[i] ?? "" }),
           });
           if (!res.ok) {
-            const body = await res.text();
-            throw new Error(`Q${i + 1} scoring failed: (${res.status}) ${body}`);
+            throw new Error(
+              "We couldn't score one of your answers. Please try submitting again.",
+            );
           }
           const data = (await res.json()) as ScoreResult;
           setScoredCount((c) => c + 1);
@@ -232,28 +240,60 @@ export default function InterviewClient({
       const avg =
         items.reduce((sum, it) => sum + it.score, 0) / items.length;
 
+      // Best-effort: ask Claude to summarize the top 3 coaching themes
+      // across all weaknesses. If this fails, we still save the interview
+      // without themes.
+      setSubmitStage("summarizing");
+      let themes: string[] = [];
+      try {
+        const themesRes = await fetch("/api/summarize-themes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            weaknesses: items.map((it) => it.weaknesses),
+          }),
+        });
+        if (themesRes.ok) {
+          const data = (await themesRes.json()) as { themes?: string[] };
+          themes = Array.isArray(data.themes) ? data.themes : [];
+        }
+      } catch {
+        // Swallow; themes are non-essential.
+      }
+
+      setSubmitStage("saving");
       const supabase = createClient();
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not signed in.");
+      if (!user) throw new Error("Your session expired. Please log in again.");
 
       const { error: insertError } = await supabase.from("interviews").insert({
         user_id: user.id,
+        role: profile.target_role,
+        industry: profile.industry,
+        experience_level: profile.experience_level,
         questions,
         answers: finalAnswers,
         feedback: items,
+        themes,
         score: Number(avg.toFixed(2)),
       });
       if (insertError) {
-        throw new Error(`Saving interview failed: ${insertError.message}`);
+        throw new Error(
+          "We couldn't save your interview. Please try submitting again.",
+        );
       }
 
       clearDraft();
       router.push("/feedback");
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(
+        e instanceof Error
+          ? e.message
+          : "Something went wrong. Please try again.",
+      );
       setSubmitting(false);
     }
   }
@@ -286,15 +326,24 @@ export default function InterviewClient({
   const total = questions.length;
 
   if (submitting) {
-    const pct = Math.round((scoredCount / total) * 100);
+    const pct =
+      submitStage === "scoring"
+        ? Math.round((scoredCount / total) * 80)
+        : submitStage === "summarizing"
+          ? 90
+          : 100;
+    const stageLabel =
+      submitStage === "scoring"
+        ? scoredCount === total
+          ? "Wrapping up…"
+          : `Scoring answer ${Math.min(scoredCount + 1, total)} of ${total}`
+        : submitStage === "summarizing"
+          ? "Identifying coaching themes…"
+          : "Saving your results…";
     return (
       <main className="mx-auto flex min-h-screen max-w-2xl flex-col items-center justify-center gap-4 px-6 py-12 text-center">
         <h1 className="text-xl font-semibold">Scoring your interview…</h1>
-        <p className="text-sm text-foreground/70">
-          {scoredCount === total
-            ? "Saving your results…"
-            : `Scoring answer ${Math.min(scoredCount + 1, total)} of ${total}`}
-        </p>
+        <p className="text-sm text-foreground/70">{stageLabel}</p>
         <div
           className="h-2 w-full max-w-xs overflow-hidden rounded-full bg-foreground/10"
           role="progressbar"
