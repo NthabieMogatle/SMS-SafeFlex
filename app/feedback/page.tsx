@@ -106,7 +106,13 @@ export default async function FeedbackPage() {
           </article>
         ))}
       </div>
-      <div className="mt-8 flex gap-3">
+      <div className="mt-8 flex flex-wrap gap-3">
+        <Link
+          href="/history"
+          className="rounded-md border border-foreground/20 px-4 py-2 text-sm font-medium hover:bg-foreground/5"
+        >
+          View history
+        </Link>
         <Link
           href="/setup"
           className="rounded-md border border-foreground/20 px-4 py-2 text-sm font-medium hover:bg-foreground/5"
@@ -114,7 +120,7 @@ export default async function FeedbackPage() {
           Update profile
         </Link>
         <Link
-          href="/interview"
+          href="/interview?fresh=1"
           className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background hover:opacity-90"
         >
           New interview

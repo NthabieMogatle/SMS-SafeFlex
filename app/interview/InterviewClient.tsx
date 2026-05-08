@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -17,8 +17,63 @@ type ScoreResult = {
   rewrite: string;
 };
 
-export default function InterviewClient({ profile }: { profile: Profile }) {
+const DRAFT_KEY = "career-os:draft:v1";
+const DRAFT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+type Draft = {
+  questions: string[];
+  answers: string[];
+  currentIndex: number;
+  fingerprint: string;
+  savedAt: number;
+};
+
+function fingerprintOf(p: Profile) {
+  return `${p.target_role}|${p.industry}|${p.experience_level}`;
+}
+
+function loadDraft(profile: Profile): Draft | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    const draft = JSON.parse(raw) as Draft;
+    if (draft.fingerprint !== fingerprintOf(profile)) return null;
+    if (Date.now() - draft.savedAt > DRAFT_MAX_AGE_MS) return null;
+    if (!Array.isArray(draft.questions) || draft.questions.length === 0) {
+      return null;
+    }
+    return draft;
+  } catch {
+    return null;
+  }
+}
+
+function saveDraft(d: Draft) {
+  try {
+    window.localStorage.setItem(DRAFT_KEY, JSON.stringify(d));
+  } catch {
+    // ignore quota errors
+  }
+}
+
+function clearDraft() {
+  try {
+    window.localStorage.removeItem(DRAFT_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+export default function InterviewClient({
+  profile,
+  startFresh,
+}: {
+  profile: Profile;
+  startFresh: boolean;
+}) {
   const router = useRouter();
+
   const [questions, setQuestions] = useState<string[] | null>(null);
   const [answers, setAnswers] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -26,10 +81,34 @@ export default function InterviewClient({ profile }: { profile: Profile }) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [scoredCount, setScoredCount] = useState(0);
+  const [restoredFromDraft, setRestoredFromDraft] = useState(false);
+
+  const initialized = useRef(false);
 
   useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
+
+    if (startFresh) {
+      clearDraft();
+      // Strip the ?fresh=1 from the URL so refresh doesn't re-fetch.
+      window.history.replaceState({}, "", "/interview");
+    } else {
+      const draft = loadDraft(profile);
+      if (draft) {
+        setQuestions(draft.questions);
+        setAnswers(draft.answers);
+        setCurrentIndex(draft.currentIndex);
+        setCurrentAnswer(draft.answers[draft.currentIndex] ?? "");
+        setRestoredFromDraft(true);
+        setLoading(false);
+        return;
+      }
+    }
+
     let cancelled = false;
-    async function fetchQuestions() {
+    (async () => {
       try {
         const res = await fetch("/api/generate-questions", {
           method: "POST",
@@ -48,18 +127,38 @@ export default function InterviewClient({ profile }: { profile: Profile }) {
         if (cancelled) return;
         setQuestions(data.questions);
         setAnswers(new Array(data.questions.length).fill(""));
+        saveDraft({
+          questions: data.questions,
+          answers: new Array(data.questions.length).fill(""),
+          currentIndex: 0,
+          fingerprint: fingerprintOf(profile),
+          savedAt: Date.now(),
+        });
       } catch (e) {
         if (cancelled) return;
         setError(e instanceof Error ? e.message : String(e));
       } finally {
         if (!cancelled) setLoading(false);
       }
-    }
-    fetchQuestions();
+    })();
     return () => {
       cancelled = true;
     };
-  }, [profile]);
+  }, [profile, startFresh]);
+
+  // Persist current state to localStorage whenever it changes.
+  useEffect(() => {
+    if (!questions || submitting) return;
+    const next = [...answers];
+    next[currentIndex] = currentAnswer;
+    saveDraft({
+      questions,
+      answers: next,
+      currentIndex,
+      fingerprint: fingerprintOf(profile),
+      savedAt: Date.now(),
+    });
+  }, [questions, answers, currentAnswer, currentIndex, profile, submitting]);
 
   function handleNext() {
     if (!questions) return;
@@ -83,10 +182,24 @@ export default function InterviewClient({ profile }: { profile: Profile }) {
     setCurrentAnswer(newAnswers[prevIdx] ?? "");
   }
 
+  function handleDiscardAndStartOver() {
+    if (
+      !window.confirm(
+        "Discard your current draft and start a new interview? Your unsaved answers will be lost.",
+      )
+    ) {
+      return;
+    }
+    clearDraft();
+    window.location.href = "/interview?fresh=1";
+  }
+
   async function handleSubmit() {
     if (!questions) return;
     setSubmitting(true);
     setError(null);
+    setScoredCount(0);
+
     const finalAnswers = [...answers];
     finalAnswers[currentIndex] = currentAnswer;
 
@@ -102,7 +215,9 @@ export default function InterviewClient({ profile }: { profile: Profile }) {
             const body = await res.text();
             throw new Error(`Q${i + 1} scoring failed: (${res.status}) ${body}`);
           }
-          return (await res.json()) as ScoreResult;
+          const data = (await res.json()) as ScoreResult;
+          setScoredCount((c) => c + 1);
+          return data;
         }),
       );
 
@@ -134,6 +249,7 @@ export default function InterviewClient({ profile }: { profile: Profile }) {
         throw new Error(`Saving interview failed: ${insertError.message}`);
       }
 
+      clearDraft();
       router.push("/feedback");
       router.refresh();
     } catch (e) {
@@ -167,12 +283,65 @@ export default function InterviewClient({ profile }: { profile: Profile }) {
   if (!questions) return null;
 
   const isLast = currentIndex === questions.length - 1;
+  const total = questions.length;
+
+  if (submitting) {
+    const pct = Math.round((scoredCount / total) * 100);
+    return (
+      <main className="mx-auto flex min-h-screen max-w-2xl flex-col items-center justify-center gap-4 px-6 py-12 text-center">
+        <h1 className="text-xl font-semibold">Scoring your interview…</h1>
+        <p className="text-sm text-foreground/70">
+          {scoredCount === total
+            ? "Saving your results…"
+            : `Scoring answer ${Math.min(scoredCount + 1, total)} of ${total}`}
+        </p>
+        <div
+          className="h-2 w-full max-w-xs overflow-hidden rounded-full bg-foreground/10"
+          role="progressbar"
+          aria-valuenow={pct}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
+          <div
+            className="h-full bg-emerald-500 transition-all duration-300"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+        {error && <p className="break-all text-sm text-red-500">{error}</p>}
+      </main>
+    );
+  }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col px-6 py-12">
-      <p className="mb-2 text-sm text-foreground/60">
-        Question {currentIndex + 1} of {questions.length}
-      </p>
+    <main className="mx-auto flex min-h-screen max-w-2xl flex-col px-6 py-8">
+      <div className="mb-4 flex items-center justify-between">
+        <p className="text-sm text-foreground/60">
+          Question {currentIndex + 1} of {total}
+          {restoredFromDraft && (
+            <span
+              className="ml-2 rounded-full bg-foreground/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-foreground/70"
+              title="Resumed from your saved draft"
+            >
+              Draft
+            </span>
+          )}
+        </p>
+        <button
+          type="button"
+          onClick={handleDiscardAndStartOver}
+          className="text-xs text-foreground/60 underline-offset-2 hover:text-foreground hover:underline"
+        >
+          Start over
+        </button>
+      </div>
+
+      <div className="mb-4 h-1 w-full overflow-hidden rounded-full bg-foreground/10">
+        <div
+          className="h-full bg-foreground transition-all duration-300"
+          style={{ width: `${((currentIndex + 1) / total) * 100}%` }}
+        />
+      </div>
+
       <h1 className="mb-6 text-xl font-semibold">{questions[currentIndex]}</h1>
       <textarea
         value={currentAnswer}
@@ -181,6 +350,9 @@ export default function InterviewClient({ profile }: { profile: Profile }) {
         placeholder="Type your answer…"
         className="w-full rounded-md border border-foreground/20 bg-transparent p-3"
       />
+      <p className="mt-1 text-[10px] text-foreground/40">
+        Auto-saved as you type.
+      </p>
       <div className="mt-4 flex gap-3">
         <button
           type="button"
@@ -194,10 +366,10 @@ export default function InterviewClient({ profile }: { profile: Profile }) {
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={submitting || !currentAnswer.trim()}
+            disabled={!currentAnswer.trim()}
             className="ml-auto rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background hover:opacity-90 disabled:opacity-50"
           >
-            {submitting ? "Scoring…" : "Submit for feedback"}
+            Submit for feedback
           </button>
         ) : (
           <button

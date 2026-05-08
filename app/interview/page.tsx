@@ -5,7 +5,11 @@ import InterviewClient from "./InterviewClient";
 
 export const dynamic = "force-dynamic";
 
-export default async function InterviewPage() {
+export default async function InterviewPage({
+  searchParams,
+}: {
+  searchParams: { fresh?: string };
+}) {
   const supabase = createClient();
   const {
     data: { user },
@@ -23,7 +27,7 @@ export default async function InterviewPage() {
   return (
     <>
       <Nav />
-      <InterviewClient profile={profile} />
+      <InterviewClient profile={profile} startFresh={searchParams.fresh === "1"} />
     </>
   );
 }

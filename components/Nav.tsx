@@ -18,7 +18,15 @@ export default async function Nav() {
           Career OS
         </Link>
         {user ? (
-          <LogoutButton />
+          <div className="flex items-center gap-3">
+            <Link
+              href="/history"
+              className="text-xs font-medium text-foreground/70 hover:text-foreground"
+            >
+              History
+            </Link>
+            <LogoutButton />
+          </div>
         ) : (
           <Link
             href="/login"
