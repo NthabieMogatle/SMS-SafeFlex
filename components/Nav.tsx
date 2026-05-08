@@ -1,7 +1,7 @@
-import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import LogoutButton from "./LogoutButton";
+import { Wordmark } from "./Logo";
 
 export default async function Nav() {
   const supabase = createClient();
@@ -17,13 +17,7 @@ export default async function Nav() {
           className="flex items-center"
           aria-label="Career OS"
         >
-          <Image
-            src="/logo/career-os-light.svg"
-            alt="Career OS"
-            width={120}
-            height={28}
-            priority
-          />
+          <Wordmark variant="light" className="h-7 w-auto" />
         </Link>
         {user ? (
           <div className="flex items-center gap-3">
