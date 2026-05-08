@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useVoiceInput } from "@/hooks/useVoiceInput";
 
 type Profile = {
   target_role: string;
@@ -84,6 +85,26 @@ export default function InterviewClient({
   const [scoredCount, setScoredCount] = useState(0);
   const [submitStage, setSubmitStage] = useState<"scoring" | "summarizing" | "saving">("scoring");
   const [restoredFromDraft, setRestoredFromDraft] = useState(false);
+  const [interimVoiceText, setInterimVoiceText] = useState("");
+
+  const handleVoiceResult = useCallback(
+    (text: string, isFinal: boolean) => {
+      const trimmed = text.trim();
+      if (!trimmed) return;
+      if (isFinal) {
+        setCurrentAnswer((prev) => {
+          const base = prev.trim();
+          return base ? `${base} ${trimmed}` : trimmed;
+        });
+        setInterimVoiceText("");
+      } else {
+        setInterimVoiceText(trimmed);
+      }
+    },
+    [],
+  );
+
+  const voice = useVoiceInput(handleVoiceResult);
 
   const initialized = useRef(false);
 
@@ -392,16 +413,64 @@ export default function InterviewClient({
       </div>
 
       <h1 className="mb-6 text-xl font-semibold">{questions[currentIndex]}</h1>
-      <textarea
-        value={currentAnswer}
-        onChange={(e) => setCurrentAnswer(e.target.value)}
-        rows={8}
-        placeholder="Type your answer…"
-        className="w-full rounded-md border border-foreground/20 bg-transparent p-3"
-      />
-      <p className="mt-1 text-[10px] text-foreground/40">
-        Auto-saved as you type.
-      </p>
+      <div className="relative">
+        <textarea
+          value={currentAnswer}
+          onChange={(e) => setCurrentAnswer(e.target.value)}
+          rows={8}
+          placeholder="Type your answer…"
+          className="w-full rounded-md border border-foreground/20 bg-transparent p-3 pr-12"
+        />
+        {voice.supported && (
+          <button
+            type="button"
+            onClick={voice.isRecording ? voice.stop : voice.start}
+            aria-pressed={voice.isRecording}
+            aria-label={voice.isRecording ? "Stop voice input" : "Start voice input"}
+            title={voice.isRecording ? "Stop recording" : "Speak your answer"}
+            className={
+              "absolute right-2 top-2 flex h-9 w-9 items-center justify-center rounded-full border transition " +
+              (voice.isRecording
+                ? "animate-pulse border-red-500 bg-red-500/15 text-red-300"
+                : "border-foreground/20 text-foreground/70 hover:bg-foreground/5")
+            }
+          >
+            {voice.isRecording ? (
+              <span aria-hidden className="block h-3 w-3 rounded-sm bg-red-400" />
+            ) : (
+              <svg
+                aria-hidden
+                viewBox="0 0 24 24"
+                width="18"
+                height="18"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="9" y="3" width="6" height="11" rx="3" />
+                <path d="M5 11a7 7 0 0 0 14 0" />
+                <line x1="12" y1="18" x2="12" y2="22" />
+              </svg>
+            )}
+          </button>
+        )}
+      </div>
+      <div className="mt-1 flex flex-wrap items-center justify-between gap-2 text-[10px] text-foreground/40">
+        <span>Auto-saved as you type.</span>
+        {voice.supported && voice.isRecording && (
+          <span className="text-red-400">
+            Listening{interimVoiceText ? `: "${interimVoiceText}"` : "…"}
+          </span>
+        )}
+        {voice.supported && !voice.isRecording && (
+          <span>Tap the mic to speak your answer.</span>
+        )}
+      </div>
+      {voice.error && (
+        <p className="mt-2 text-xs text-amber-400">{voice.error}</p>
+      )}
       <div className="mt-4 flex gap-3">
         <button
           type="button"

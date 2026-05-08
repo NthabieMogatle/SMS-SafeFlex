@@ -297,9 +297,17 @@ export default async function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="flex flex-col gap-3 border-t border-foreground/10 pt-6 text-xs text-foreground/50 sm:flex-row sm:items-center sm:justify-between">
+      <footer className="flex flex-col gap-4 border-t border-foreground/10 pt-6 text-xs text-foreground/50 sm:flex-row sm:items-center sm:justify-between">
         <Wordmark variant="light" className="h-5 w-auto" />
-        <p>© {new Date().getFullYear()} Career OS. Built with Claude.</p>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <Link href="/privacy" className="hover:text-foreground">
+            Privacy
+          </Link>
+          <Link href="/terms" className="hover:text-foreground">
+            Terms
+          </Link>
+          <span>© {new Date().getFullYear()} Career OS</span>
+        </div>
       </footer>
     </main>
   );

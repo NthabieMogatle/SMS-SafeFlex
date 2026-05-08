@@ -1,0 +1,219 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { Wordmark } from "@/components/Logo";
+
+export const metadata: Metadata = {
+  title: "Terms of Service",
+  description: "The terms governing your use of Career OS.",
+};
+
+const UPDATED = "May 8, 2026";
+
+export default function TermsPage() {
+  return (
+    <main className="mx-auto max-w-2xl px-6 py-12">
+      <header className="mb-10 flex items-center justify-between">
+        <Link href="/" aria-label="Career OS">
+          <Wordmark variant="light" className="h-7 w-auto" />
+        </Link>
+        <Link
+          href="/privacy"
+          className="text-xs font-medium text-foreground/70 hover:text-foreground"
+        >
+          Privacy
+        </Link>
+      </header>
+
+      <h1 className="mb-2 text-3xl font-semibold">Terms of Service</h1>
+      <p className="mb-8 text-xs text-foreground/50">Last updated {UPDATED}</p>
+
+      <div className="space-y-8 text-sm leading-relaxed text-foreground/80">
+        <section>
+          <h2 className="mb-2 text-base font-semibold text-foreground">
+            1. Acceptance
+          </h2>
+          <p>
+            By creating a Career OS account or using the service in any
+            way, you agree to these Terms. If you don&apos;t agree, please
+            don&apos;t use the service.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="mb-2 text-base font-semibold text-foreground">
+            2. Eligibility
+          </h2>
+          <p>
+            You must be at least 16 years old to use Career OS. By signing
+            up you confirm you meet this minimum age and that the
+            information you provide is accurate.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="mb-2 text-base font-semibold text-foreground">
+            3. The service
+          </h2>
+          <p>
+            Career OS uses AI (Anthropic&apos;s Claude) to generate
+            practice interview questions and feedback. The output is
+            automated and is for practice and self-improvement only. It is
+            not a guarantee of interview success and is not professional
+            career advice. Use it as a coaching tool, not a substitute for
+            real preparation, mentorship, or professional services.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="mb-2 text-base font-semibold text-foreground">
+            4. Your account
+          </h2>
+          <p>
+            You&apos;re responsible for keeping your password secret and
+            for all activity that happens under your account. Tell us
+            immediately if you think your account has been compromised.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="mb-2 text-base font-semibold text-foreground">
+            5. Acceptable use
+          </h2>
+          <p>You agree not to:</p>
+          <ul className="mt-2 list-disc space-y-1 pl-5">
+            <li>Use the service for anything illegal.</li>
+            <li>
+              Attempt to extract, scrape, or reverse-engineer the service
+              or the underlying models.
+            </li>
+            <li>
+              Submit content that is hateful, harassing, or otherwise
+              violates Anthropic&apos;s usage policies.
+            </li>
+            <li>
+              Share your account credentials or resell access without our
+              permission.
+            </li>
+            <li>
+              Probe, scan, or attempt to disrupt the service&apos;s
+              infrastructure.
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 className="mb-2 text-base font-semibold text-foreground">
+            6. Plans, payment, and refunds
+          </h2>
+          <p>
+            Career OS offers a free tier with usage limits and a lifetime
+            tier sold via partners (e.g. AppSumo). Lifetime tier is a
+            one-time purchase that grants unlimited interviews for the
+            life of the service. Refund eligibility is governed by the
+            policy of the platform you purchased through (e.g.
+            AppSumo&apos;s 60-day refund policy). Contact the original
+            seller for refund requests.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="mb-2 text-base font-semibold text-foreground">
+            7. Intellectual property
+          </h2>
+          <p>
+            Career OS, the brand, the design, and the underlying code are
+            ours. Your interview answers are yours. The AI-generated
+            questions and feedback are produced for your use; we
+            don&apos;t claim ownership over what Claude generates for
+            you, but we don&apos;t guarantee its uniqueness either.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="mb-2 text-base font-semibold text-foreground">
+            8. Termination
+          </h2>
+          <p>
+            You may delete your account at any time. We may suspend or
+            terminate accounts that violate these Terms. If we shut down
+            the service entirely, lifetime-tier customers will be given
+            reasonable advance notice.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="mb-2 text-base font-semibold text-foreground">
+            9. Disclaimers
+          </h2>
+          <p>
+            The service is provided &quot;as is.&quot; AI-generated
+            content can be wrong, biased, or out of date. We don&apos;t
+            warrant that the service will be uninterrupted or error-free,
+            or that the feedback will accurately predict any real-world
+            interview outcome. Use your judgment.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="mb-2 text-base font-semibold text-foreground">
+            10. Limitation of liability
+          </h2>
+          <p>
+            To the maximum extent permitted by law, our total liability to
+            you for any claim arising out of these Terms or your use of
+            the service is limited to the amount you paid us for the
+            service in the 12 months before the claim, or USD $50,
+            whichever is greater.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="mb-2 text-base font-semibold text-foreground">
+            11. Changes
+          </h2>
+          <p>
+            We may update these Terms as the product evolves. Material
+            changes will be announced via email or in-app notice. The
+            &quot;Last updated&quot; date reflects the current version.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="mb-2 text-base font-semibold text-foreground">
+            12. Contact
+          </h2>
+          <p>
+            Questions about these Terms — email{" "}
+            <a
+              href="mailto:hello@career-os.app"
+              className="underline decoration-foreground/40 underline-offset-2 hover:decoration-foreground"
+            >
+              hello@career-os.app
+            </a>
+            .
+          </p>
+        </section>
+
+        <p className="rounded-md border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-300/90">
+          ⚠️ These are starter Terms generated for launch. Have a lawyer
+          review before relying on them in production, especially around
+          jurisdiction, refunds, and liability caps.
+        </p>
+      </div>
+
+      <footer className="mt-16 flex flex-col gap-3 border-t border-foreground/10 pt-6 text-xs text-foreground/50 sm:flex-row sm:items-center sm:justify-between">
+        <Link href="/" aria-label="Career OS">
+          <Wordmark variant="light" className="h-5 w-auto" />
+        </Link>
+        <div className="flex gap-4">
+          <Link href="/privacy" className="hover:text-foreground">
+            Privacy
+          </Link>
+          <Link href="/terms" className="hover:text-foreground">
+            Terms
+          </Link>
+        </div>
+      </footer>
+    </main>
+  );
+}
