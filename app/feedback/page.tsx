@@ -61,18 +61,40 @@ export default async function FeedbackPage({
     return (
       <>
         <Nav />
-        <main className="mx-auto flex min-h-screen max-w-2xl flex-col items-center justify-center gap-4 px-6 py-12 text-center">
-          <p className="text-foreground/70">
-            {searchParams.id
-              ? "We couldn't find that interview."
-              : "No interviews yet."}
-          </p>
-          <Link
-            href="/interview?fresh=1"
-            className="rounded-md bg-foreground px-5 py-2.5 text-sm font-medium text-background hover:opacity-90"
-          >
-            Start one
-          </Link>
+        <main className="mx-auto flex min-h-[80vh] max-w-xl flex-col items-center justify-center gap-4 px-6 py-12 text-center">
+          {searchParams.id ? (
+            <>
+              <h1 className="text-xl font-semibold">
+                We couldn&apos;t find that interview
+              </h1>
+              <p className="text-sm text-foreground/60">
+                It may have been deleted, or it belongs to a different
+                account.
+              </p>
+            </>
+          ) : (
+            <>
+              <h1 className="text-xl font-semibold">No feedback yet</h1>
+              <p className="text-sm text-foreground/60">
+                Run your first mock interview and your scored feedback will
+                show up here.
+              </p>
+            </>
+          )}
+          <div className="mt-2 flex flex-wrap justify-center gap-3">
+            <Link
+              href="/dashboard"
+              className="rounded-md border border-foreground/20 px-4 py-2 text-sm font-medium hover:bg-foreground/5"
+            >
+              Go to dashboard
+            </Link>
+            <Link
+              href="/interview?fresh=1"
+              className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background hover:opacity-90"
+            >
+              Start an interview
+            </Link>
+          </div>
         </main>
       </>
     );

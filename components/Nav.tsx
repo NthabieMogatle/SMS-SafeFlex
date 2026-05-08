@@ -27,6 +27,12 @@ export default async function Nav() {
             >
               Dashboard
             </Link>
+            <Link
+              href="/account"
+              className="text-xs font-medium text-foreground/70 hover:text-foreground"
+            >
+              Account
+            </Link>
             <LogoutButton />
           </div>
         ) : (

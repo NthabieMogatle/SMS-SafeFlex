@@ -178,15 +178,54 @@ export default async function DashboardPage() {
         </div>
 
         {total === 0 ? (
-          <div className="rounded-md border border-foreground/10 p-8 text-center">
-            <p className="mb-4 text-sm text-foreground/70">
-              Practice your first interview to start tracking progress.
+          <div className="rounded-md border border-foreground/10 p-8">
+            <h2 className="mb-3 text-lg font-semibold">
+              Welcome — let&apos;s run your first interview
+            </h2>
+            <p className="mb-6 text-sm text-foreground/70">
+              In about 5 minutes you&apos;ll get scored answers, targeted
+              weaknesses, and rewritten responses calibrated to your role
+              and industry. After each session, your top coaching themes
+              show up here.
             </p>
+            <ol className="mb-6 space-y-3 text-sm">
+              <li className="flex gap-3">
+                <span
+                  aria-hidden
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-foreground/20 text-xs font-semibold"
+                >
+                  1
+                </span>
+                <span>
+                  Tell us your target role, industry, and experience level.
+                </span>
+              </li>
+              <li className="flex gap-3">
+                <span
+                  aria-hidden
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-foreground/20 text-xs font-semibold"
+                >
+                  2
+                </span>
+                <span>Answer 5 AI-generated interview questions.</span>
+              </li>
+              <li className="flex gap-3">
+                <span
+                  aria-hidden
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-foreground/20 text-xs font-semibold"
+                >
+                  3
+                </span>
+                <span>
+                  Get scored feedback, rewrites, and the top 3 things to work on.
+                </span>
+              </li>
+            </ol>
             <Link
               href="/setup"
-              className="rounded-md border border-foreground/20 px-4 py-2 text-sm font-medium hover:bg-foreground/5"
+              className="inline-flex rounded-md bg-foreground px-5 py-2.5 text-sm font-medium text-background hover:opacity-90"
             >
-              Update profile
+              Start your first interview →
             </Link>
           </div>
         ) : (

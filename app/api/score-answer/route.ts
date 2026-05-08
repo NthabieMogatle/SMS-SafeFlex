@@ -45,7 +45,7 @@ SUB-RUBRICS:
 - Systems / design: structure of the response, identification of key concerns, articulated trade-offs, concrete patterns/technologies, scaling and failure modes
 - Culture / motivation: authenticity, self-awareness, value alignment, specific examples vs platitudes
 
-STRENGTHS (3-6 bullets): Each must be grounded in something the candidate actually said. Paraphrase or reference a specific phrase from the answer. No generic praise like "well-structured" without saying what specifically worked.
+STRENGTHS (0-6 bullets): Each must be grounded in something the candidate actually said. Paraphrase or reference a specific phrase from the answer. No generic praise like "well-structured" without saying what specifically worked. **If the answer is empty, nonsensical, off-topic, or fundamentally non-responsive, return an empty strengths array — do not invent praise.**
 
 WEAKNESSES (1-5 bullets; fewer is fine, do NOT pad): Real gaps a senior interviewer would notice. Each must be actionable — what specifically the candidate could add, clarify, or restructure to score higher. Distinguish "missing" (didn't mention X) from "wrong" (said X incorrectly). If the answer is excellent, give fewer weaknesses — that's correct calibration.
 

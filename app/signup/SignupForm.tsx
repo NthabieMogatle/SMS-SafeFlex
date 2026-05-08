@@ -12,6 +12,8 @@ export default function SignupForm() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [confirmationSent, setConfirmationSent] = useState(false);
+  const [resending, setResending] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -36,6 +38,7 @@ export default function SignupForm() {
         setInfo(
           "Account created. Check your email for a confirmation link, then log in.",
         );
+        setConfirmationSent(true);
         setLoading(false);
         return;
       }
@@ -46,6 +49,32 @@ export default function SignupForm() {
         "Something went wrong. Please check your connection and try again.",
       );
       setLoading(false);
+    }
+  }
+
+  async function handleResend() {
+    if (!email) return;
+    setResending(true);
+    setError(null);
+    try {
+      const supabase = createClient();
+      const { error: resendError } = await supabase.auth.resend({
+        type: "signup",
+        email,
+      });
+      if (resendError) {
+        setError(
+          "We couldn't resend the confirmation email. Please try again in a minute.",
+        );
+      } else {
+        setInfo(
+          `Confirmation email re-sent to ${email}. Check your inbox (and spam folder).`,
+        );
+      }
+    } catch {
+      setError("Something went wrong. Please check your connection.");
+    } finally {
+      setResending(false);
     }
   }
 
@@ -95,6 +124,21 @@ export default function SignupForm() {
           {loading ? "Creating account…" : "Sign up"}
         </button>
       </form>
+      {confirmationSent && (
+        <div className="mt-4 rounded-md border border-foreground/10 p-3 text-xs">
+          <p className="mb-2 text-foreground/70">
+            Didn&apos;t get the email? Check your spam folder, or…
+          </p>
+          <button
+            type="button"
+            onClick={handleResend}
+            disabled={resending}
+            className="rounded-md border border-foreground/20 px-3 py-1.5 text-xs font-medium hover:bg-foreground/5 disabled:opacity-50"
+          >
+            {resending ? "Resending…" : "Resend confirmation email"}
+          </button>
+        </div>
+      )}
       <p className="mt-4 text-sm text-foreground/60">
         Already have an account?{" "}
         <Link href="/login" className="underline">
