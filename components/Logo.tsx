@@ -1,5 +1,7 @@
 type Variant = "light" | "dark";
 
+const PRODUCT_NAME = "AI Mock Interview Coach";
+
 export function Wordmark({
   variant = "light",
   className,
@@ -12,34 +14,24 @@ export function Wordmark({
 
   return (
     <svg
-      viewBox="0 0 220 72"
+      viewBox="0 0 320 36"
       role="img"
-      aria-label="Elevra"
+      aria-label={PRODUCT_NAME}
       className={className}
     >
-      <title>Elevra</title>
-      <g
-        transform="translate(8 16)"
-        stroke={accent}
-        strokeWidth="3.5"
-        strokeLinecap="round"
-        fill="none"
-      >
-        <path d="M 12 9 A 16 16 0 1 0 32 9" />
-        <line x1="22" y1="2" x2="22" y2="22" />
-      </g>
+      <title>{PRODUCT_NAME}</title>
       <text
-        x="64"
-        y="48"
+        x="0"
+        y="26"
         fontFamily="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
-        fontSize="32"
-        letterSpacing="-0.02em"
+        fontSize="22"
+        letterSpacing="-0.01em"
       >
-        <tspan fontWeight="500" fill={text}>
-          Elev
-        </tspan>
         <tspan fontWeight="800" fill={accent}>
-          ra
+          AI
+        </tspan>
+        <tspan fontWeight="500" fill={text}>
+          {" "}Mock Interview Coach
         </tspan>
       </text>
     </svg>

@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 const FEATURES = [
   {
     title: "Calibrated to your role",
-    body: "Pick your target role, industry, and experience level. Elevra generates 5 questions tuned to that exact profile — no generic 'tell me about yourself' filler.",
+    body: "Pick your target role, industry, and experience level. We generate 5 questions tuned to that exact profile — no generic 'tell me about yourself' filler.",
   },
   {
     title: "Honest scoring",
@@ -74,18 +74,19 @@ export default async function HomePage() {
       <section className="mb-20 text-center sm:mb-28">
         <p className="mb-6 inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-cyan-300">
           <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
-          AI Interview Coach
+          <span className="font-extrabold">AI</span>
+          <span>Mock Interview Coach</span>
         </p>
-        <h1 className="mx-auto max-w-3xl text-6xl font-semibold leading-[1.0] tracking-tight sm:text-7xl">
-          Elev<span className="text-cyan-400">ra</span>
+        <h1 className="mx-auto max-w-3xl text-5xl font-semibold leading-[1.05] tracking-tight sm:text-6xl">
+          Practice interviews with{" "}
+          <span className="text-cyan-400">AI.</span>
+          <br />
+          Get <span className="text-cyan-400">hired</span> faster.
         </h1>
-        <p className="mx-auto mt-4 max-w-xl text-2xl font-medium text-foreground/80 sm:text-3xl">
-          The interview, <span className="text-cyan-400">elevated.</span>
-        </p>
         <p className="mx-auto mt-8 max-w-xl text-base text-foreground/70 sm:text-lg">
-          Practice mock interviews with an AI coach. Scored answers,
-          targeted feedback, and rewritten responses that pull rough drafts
-          up to interview-winning quality.
+          Get scored answers, targeted feedback, and rewritten responses
+          calibrated to your role, industry, and experience. Practice until
+          your next interview feels easy.
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Link
@@ -296,12 +297,6 @@ export default async function HomePage() {
         </Link>
       </section>
 
-      {/* What's in the name */}
-      <p className="mb-10 text-center text-xs italic text-foreground/40">
-        Elevra — to lift, to raise. Because every interview deserves to be
-        elevated.
-      </p>
-
       {/* Footer */}
       <footer className="flex flex-col gap-4 border-t border-foreground/10 pt-6 text-xs text-foreground/50 sm:flex-row sm:items-center sm:justify-between">
         <Wordmark variant="light" className="h-5 w-auto" />
@@ -312,7 +307,7 @@ export default async function HomePage() {
           <Link href="/terms" className="hover:text-foreground">
             Terms
           </Link>
-          <span>© {new Date().getFullYear()} Elevra</span>
+          <span>© {new Date().getFullYear()} AI Mock Interview Coach</span>
         </div>
       </footer>
     </main>

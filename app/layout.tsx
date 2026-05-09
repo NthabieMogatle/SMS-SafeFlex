@@ -18,43 +18,45 @@ function siteUrl(): URL {
 }
 
 const SITE_URL = siteUrl();
+const PRODUCT_NAME = "AI Mock Interview Coach";
+const TAGLINE = "Practice interviews with AI. Get hired faster.";
+const TITLE = `${PRODUCT_NAME} — ${TAGLINE}`;
+const DESCRIPTION =
+  "Practice mock interviews with an AI coach. Get scored answers, targeted feedback, and rewritten responses that win interviews.";
 
 export const metadata: Metadata = {
   metadataBase: SITE_URL,
   title: {
-    default: "Elevra — The interview, elevated.",
-    template: "%s · Elevra",
+    default: TITLE,
+    template: `%s · ${PRODUCT_NAME}`,
   },
-  description:
-    "Practice mock interviews with an AI coach. Get scored answers, targeted feedback, and rewritten responses that win interviews.",
-  applicationName: "Elevra",
-  authors: [{ name: "Elevra" }],
+  description: DESCRIPTION,
+  applicationName: PRODUCT_NAME,
+  authors: [{ name: PRODUCT_NAME }],
   keywords: [
-    "mock interview",
+    "AI mock interview",
     "AI interview coach",
     "interview practice",
     "behavioral interview",
     "technical interview",
     "career preparation",
-    "Elevra",
+    "interview practice tool",
   ],
   alternates: {
     canonical: "/",
   },
   openGraph: {
     type: "website",
-    siteName: "Elevra",
-    title: "Elevra — The interview, elevated.",
-    description:
-      "Practice mock interviews with an AI coach. Get scored answers, targeted feedback, and rewritten responses that win interviews.",
+    siteName: PRODUCT_NAME,
+    title: TITLE,
+    description: DESCRIPTION,
     url: SITE_URL.toString(),
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Elevra — The interview, elevated.",
-    description:
-      "Practice mock interviews with an AI coach. Get scored answers, targeted feedback, and rewritten responses that win interviews.",
+    title: TITLE,
+    description: DESCRIPTION,
   },
   robots: {
     index: true,
