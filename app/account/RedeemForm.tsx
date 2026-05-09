@@ -51,7 +51,7 @@ export default function RedeemForm() {
           required
           value={code}
           onChange={(e) => setCode(e.target.value)}
-          placeholder="CAREEROS-LAUNCH-001"
+          placeholder="LIFETIME-XXXXX-XXXXX"
           autoCapitalize="characters"
           autoCorrect="off"
           spellCheck={false}

@@ -4,7 +4,7 @@ import { Wordmark } from "@/components/Logo";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
-  description: "How Career OS collects, uses, and stores your data.",
+  description: "How Elevra collects, uses, and stores your data.",
 };
 
 const UPDATED = "May 8, 2026";
@@ -13,7 +13,7 @@ export default function PrivacyPage() {
   return (
     <main className="mx-auto max-w-2xl px-6 py-12">
       <header className="mb-10 flex items-center justify-between">
-        <Link href="/" aria-label="Career OS">
+        <Link href="/" aria-label="Elevra">
           <Wordmark variant="light" className="h-7 w-auto" />
         </Link>
         <Link
@@ -33,7 +33,7 @@ export default function PrivacyPage() {
             What we collect
           </h2>
           <p>
-            When you create a Career OS account we store your email address
+            When you create an Elevra account we store your email address
             and password (hashed) via our authentication provider. When you
             complete an interview we store the role, industry, and experience
             level you entered, the interview questions generated for you,
@@ -105,7 +105,7 @@ export default function PrivacyPage() {
             Children
           </h2>
           <p>
-            Career OS is not intended for children under 16. If you believe
+            Elevra is not intended for children under 16. If you believe
             a child has created an account, contact us and we&apos;ll
             remove it.
           </p>
@@ -131,10 +131,10 @@ export default function PrivacyPage() {
             Questions about your data, requests to delete your account, or
             anything else privacy-related — email{" "}
             <a
-              href="mailto:hello@career-os.app"
+              href="mailto:hello@elevra.app"
               className="underline decoration-foreground/40 underline-offset-2 hover:decoration-foreground"
             >
-              hello@career-os.app
+              hello@elevra.app
             </a>
             .
           </p>
@@ -148,7 +148,7 @@ export default function PrivacyPage() {
       </div>
 
       <footer className="mt-16 flex flex-col gap-3 border-t border-foreground/10 pt-6 text-xs text-foreground/50 sm:flex-row sm:items-center sm:justify-between">
-        <Link href="/" aria-label="Career OS">
+        <Link href="/" aria-label="Elevra">
           <Wordmark variant="light" className="h-5 w-auto" />
         </Link>
         <div className="flex gap-4">

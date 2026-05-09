@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Account",
-  description: "Manage your Career OS plan and redeem launch codes.",
+  description: "Manage your Elevra plan and redeem launch codes.",
 };
 
 export default async function AccountPage() {
@@ -41,7 +41,7 @@ export default async function AccountPage() {
               </div>
               <p className="text-sm text-foreground/70">
                 Unlimited interviews, full feedback, history, and themes —
-                forever. Thanks for supporting Career OS.
+                forever. Thanks for supporting Elevra.
               </p>
             </>
           ) : (
@@ -81,8 +81,8 @@ export default async function AccountPage() {
               Redeem a code
             </h2>
             <p className="mb-4 text-sm text-foreground/70">
-              Got a launch code or AppSumo code? Enter it below to upgrade
-              your account.
+              Got a code? Enter it below to upgrade your account to
+              lifetime access.
             </p>
             <RedeemForm />
           </section>

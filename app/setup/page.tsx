@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Set up your interview",
   description:
-    "Tell Career OS your target role, industry, and experience so we can tailor your interview.",
+    "Tell Elevra your target role, industry, and experience so we can tailor your interview.",
 };
 
 export default async function SetupPage() {

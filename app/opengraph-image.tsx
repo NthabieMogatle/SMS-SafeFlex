@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "Career OS — AI mock interviews that actually help you improve";
+export const alt = "Elevra — The interview, elevated.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -24,38 +24,60 @@ export default function OpengraphImage() {
       >
         <div
           style={{
-            fontSize: 24,
-            color: "rgb(52 211 153)",
-            letterSpacing: 4,
-            textTransform: "uppercase",
-            fontWeight: 600,
-            marginBottom: 24,
+            display: "flex",
+            alignItems: "center",
+            gap: 18,
+            marginBottom: 40,
           }}
         >
-          Career OS
+          {/* Power-button glyph */}
+          <svg width="56" height="56" viewBox="0 0 64 64" fill="none">
+            <g
+              transform="translate(32 33)"
+              stroke="#22D3EE"
+              strokeWidth="4"
+              strokeLinecap="round"
+              fill="none"
+            >
+              <path d="M -8 -10 A 14 14 0 1 0 8 -10" />
+              <line x1="0" y1="-16" x2="0" y2="0" />
+            </g>
+          </svg>
+          <div
+            style={{
+              fontSize: 28,
+              color: "rgb(255 255 255 / 0.7)",
+              letterSpacing: 4,
+              textTransform: "uppercase",
+              fontWeight: 600,
+            }}
+          >
+            Elevra
+          </div>
         </div>
         <div
           style={{
-            fontSize: 88,
+            fontSize: 110,
             fontWeight: 700,
             lineHeight: 1.05,
-            letterSpacing: -2,
-            maxWidth: 980,
+            letterSpacing: -3,
+            maxWidth: 1000,
           }}
         >
-          AI mock interviews that actually help you improve.
+          The interview,{" "}
+          <span style={{ color: "#22D3EE" }}>elevated.</span>
         </div>
         <div
           style={{
             fontSize: 28,
             opacity: 0.7,
-            marginTop: 32,
-            maxWidth: 880,
+            marginTop: 36,
+            maxWidth: 920,
             lineHeight: 1.4,
           }}
         >
-          Scored answers, targeted feedback, and rewritten responses
-          calibrated to your role, industry, and experience.
+          Practice mock interviews with an AI coach. Scored answers,
+          targeted feedback, rewritten responses that win interviews.
         </div>
       </div>
     ),

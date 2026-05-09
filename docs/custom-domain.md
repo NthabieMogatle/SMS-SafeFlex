@@ -1,101 +1,124 @@
-# Custom domain setup
+# Custom domain setup — elevra.app
 
-Step-by-step to move Career OS from `career-os-alpha.vercel.app` to a custom
-domain like `careeros.app` or `careerosapp.com`.
+This walkthrough assumes the domain `elevra.app` was bought directly through
+Vercel (their built-in registrar). When you buy through Vercel the DNS is
+auto-configured and SSL is provisioned automatically — most of the work
+happens for you.
 
-## 1. Buy the domain
+If you ever need to switch to a domain bought elsewhere (Cloudflare,
+Namecheap, Porkbun), the manual DNS steps are at the end.
 
-Recommended registrars:
+## 1. Attach `elevra.app` to your Vercel project
 
-- **Cloudflare Registrar** — at-cost pricing, no upsells, fast
-- **Namecheap** — friendly UI, lower-cost first-year, works fine
-- **Porkbun** — at-cost, clean UI
+1. Open the Vercel dashboard → **elevra** project → **Settings** → **Domains**.
+2. If `elevra.app` already appears in the list (because you bought it
+   through Vercel), click **Add to project** next to it.
+3. If it doesn't appear, type `elevra.app` into the input and click **Add**.
+4. Vercel will provision the SSL certificate automatically. The status
+   moves from **Configuring** → **Valid Configuration** in 30–90 seconds.
 
-Buying tips:
+## 2. Also add `www.elevra.app` and redirect it
 
-- Prefer `.app` or `.com`. Avoid country-code TLDs unless you're regional.
-- Check the name on Twitter / X, LinkedIn, Instagram, and as a Gmail handle
-  before buying — domain-only branding is fragile.
-- Enable WHOIS privacy at checkout. Most registrars include it free.
+1. In the same **Domains** screen, click **Add Domain** again.
+2. Type `www.elevra.app` and click **Add**.
+3. Vercel will detect both an apex and a www variant and ask which is the
+   "primary" — choose **`elevra.app`** as primary.
+4. Vercel automatically sets up a 308 redirect from `www.elevra.app` to
+   `elevra.app`. No DNS work required.
 
-## 2. Add the domain to Vercel
+## 3. Verify SSL / HTTPS
 
-1. Open the Vercel dashboard → **career-os** project → **Settings** → **Domains**
-2. Type your new domain (e.g. `careeros.app`) and click **Add**
-3. Add the apex (`careeros.app`) AND the `www` subdomain together so both
-   resolve. Vercel will redirect one to the other automatically.
-4. Vercel will show you DNS records to add.
+1. Wait until both domains show **Valid Configuration** with a green check.
+2. Open `https://elevra.app` in a fresh browser tab.
+3. Tap the lock icon in the address bar — you should see "Connection is
+   secure" and a valid Let's Encrypt certificate. The browser shows the
+   green padlock.
+4. Try `https://www.elevra.app` too — it should immediately redirect to
+   the apex.
 
-## 3. Set the DNS records at your registrar
+If the cert is still pending, give it 5 more minutes and retry. SSL via
+Let's Encrypt almost always finishes within 1–2 minutes when DNS is
+already correct (which it is for Vercel-purchased domains).
 
-You'll see one of two patterns depending on the registrar:
+## 4. Set elevra.app as Production Domain
 
-**Apex domain (e.g. `careeros.app`)**
+This makes Vercel route the latest production deployment to `elevra.app`
+and 301-redirect the old `*.vercel.app` URLs to the custom domain.
 
-```
-Type: A
-Name: @
-Value: 76.76.21.21
-```
+1. **Settings** → **Domains** → click **⋯** next to `elevra.app` → **Set
+   as Production Domain**.
+2. Confirm.
 
-**`www` subdomain**
+## 5. Update Supabase Auth URLs (don't skip)
 
-```
-Type: CNAME
-Name: www
-Value: cname.vercel-dns.com
-```
+Supabase rejects auth redirects to URLs that aren't in its allowlist.
+Without this step, the magic-link confirmation email will fail when users
+click the link from `elevra.app`.
 
-Some registrars (like Cloudflare) recommend "ALIAS" or "CNAME flattening"
-on the apex — Vercel works with that too.
+1. Open the Supabase dashboard → your project → **Authentication** →
+   **URL Configuration**.
+2. Set **Site URL** to: `https://elevra.app`
+3. In **Redirect URLs**, add (one per line):
+   - `https://elevra.app/**`
+   - `https://www.elevra.app/**`
+   - Keep `https://career-os-alpha.vercel.app/**` and the auto-generated
+     Vercel preview URLs in the list during the transition — they'll let
+     existing in-flight emails still work.
+4. Click **Save**.
 
-## 4. Wait for SSL
+## 6. Update environment variables in Vercel
 
-Vercel automatically provisions a Let's Encrypt SSL certificate within
-~1–5 minutes after DNS resolves. Refresh the Domains page; it goes from
-"Configuring" to "Valid Configuration" with a green check.
+1. Vercel → elevra project → **Settings** → **Environment Variables**.
+2. Edit `NEXT_PUBLIC_SITE_URL` → set value to:
+   ```
+   https://elevra.app
+   ```
+   Make sure to include `https://`. The code tolerates either form, but a
+   clean canonical URL is what shows up in OG previews and metadata.
+3. Save. Then go to **Deployments** → ⋯ on the latest → **Redeploy**
+   (uncheck cache) so the metadata picks up the new value.
 
-## 5. Update Supabase Auth redirect URLs
+## 7. Smoke test the live domain
 
-Critical step — Supabase will reject auth redirects to unknown URLs.
+Walk through the full flow once on `https://elevra.app`:
 
-1. Open the Supabase dashboard → **Authentication** → **URL Configuration**
-2. Set **Site URL** to your new custom domain (e.g. `https://careeros.app`)
-3. Add it to **Redirect URLs** as well: `https://careeros.app/**`
-4. Keep `https://career-os-alpha.vercel.app/**` in the list temporarily
-   so existing magic-link emails still work during the transition.
-
-## 6. Update environment variables
-
-In Vercel → Settings → Environment Variables, edit:
-
-```
-NEXT_PUBLIC_SITE_URL = https://careeros.app
-```
-
-Make sure to include the `https://` prefix. Then redeploy:
-
-- Deployments → ⋯ on latest → Redeploy → uncheck cache → Redeploy
-
-## 7. Verify
-
-Open `https://careeros.app/`. You should see the Career OS landing page.
-
-Test the full flow once: sign up with a fresh test email, click the
-confirmation link, get redirected to `careeros.app/setup`, complete an
-interview. If the confirmation link redirects to the old domain, double-check
-step 5.
+1. Open the homepage. Verify the Elevra wordmark in the nav, hero
+   tagline ("The interview, elevated"), and pricing tier reading
+   "Lifetime / One-time".
+2. Sign up with a fresh test email. Click the confirmation link from
+   your inbox — it should redirect to `elevra.app/setup`, not the old
+   Vercel URL.
+3. Fill in role / industry / experience, run an interview, submit.
+4. Verify `/dashboard` and `/account` render correctly with the new
+   branding.
+5. In Safari/Chrome, view source on the homepage and check the
+   `<meta property="og:image">` tag points at `elevra.app/opengraph-image`.
+6. Share `https://elevra.app` to iMessage / WhatsApp / X / LinkedIn —
+   the preview should show "Elevra — The interview, elevated." with
+   the dark-navy + cyan OG image.
 
 ## 8. Optional polish
 
-- **301 redirect** from the old `career-os-alpha.vercel.app` to the new
-  domain. Vercel does this automatically once you set the new domain as
-  primary in Settings → Domains → ⋯ → Set as Production Domain.
-- **Update OG image domain reference** if you have any hardcoded URLs in
-  social previews (we don't — OG image is generated from `metadataBase`
-  which reads `NEXT_PUBLIC_SITE_URL`).
-- **Email templates** in Supabase still reference the old logo path? They
-  shouldn't since the email template uses inline SVG. If you switch to a
-  hosted image later, update the `<img src>` to point at the new domain.
-- **AppSumo deal listing** — when you submit, use the custom domain in
-  the listing URL.
+- **Lock down `*.vercel.app` URLs**: in Vercel → Settings → Domains, you
+  can disable the auto-generated preview hostnames if you don't want them
+  publicly accessible. The custom domain is enough for production.
+- **Email branding**: paste `docs/supabase-email-confirm.html` into
+  Supabase → Authentication → Email Templates → Confirm signup → Save.
+- **DNS health**: Vercel's domain page shows DNS records — confirm A and
+  AAAA records resolve from a tool like `dig elevra.app` or
+  https://dnschecker.org.
+
+---
+
+## Appendix: domain bought outside Vercel
+
+If you ever migrate to a domain from another registrar (Cloudflare,
+Namecheap, Porkbun, etc.), set these DNS records at the registrar:
+
+```
+Type: A          Name: @     Value: 76.76.21.21
+Type: CNAME      Name: www   Value: cname.vercel-dns.com
+```
+
+Vercel auto-detects when DNS resolves correctly and provisions SSL the
+same way.

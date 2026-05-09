@@ -4,7 +4,7 @@ import { Wordmark } from "@/components/Logo";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
-  description: "The terms governing your use of Career OS.",
+  description: "The terms governing your use of Elevra.",
 };
 
 const UPDATED = "May 8, 2026";
@@ -13,7 +13,7 @@ export default function TermsPage() {
   return (
     <main className="mx-auto max-w-2xl px-6 py-12">
       <header className="mb-10 flex items-center justify-between">
-        <Link href="/" aria-label="Career OS">
+        <Link href="/" aria-label="Elevra">
           <Wordmark variant="light" className="h-7 w-auto" />
         </Link>
         <Link
@@ -33,7 +33,7 @@ export default function TermsPage() {
             1. Acceptance
           </h2>
           <p>
-            By creating a Career OS account or using the service in any
+            By creating an Elevra account or using the service in any
             way, you agree to these Terms. If you don&apos;t agree, please
             don&apos;t use the service.
           </p>
@@ -44,7 +44,7 @@ export default function TermsPage() {
             2. Eligibility
           </h2>
           <p>
-            You must be at least 16 years old to use Career OS. By signing
+            You must be at least 16 years old to use Elevra. By signing
             up you confirm you meet this minimum age and that the
             information you provide is accurate.
           </p>
@@ -55,7 +55,7 @@ export default function TermsPage() {
             3. The service
           </h2>
           <p>
-            Career OS uses AI (Anthropic&apos;s Claude) to generate
+            Elevra uses AI (Anthropic&apos;s Claude) to generate
             practice interview questions and feedback. The output is
             automated and is for practice and self-improvement only. It is
             not a guarantee of interview success and is not professional
@@ -106,13 +106,12 @@ export default function TermsPage() {
             6. Plans, payment, and refunds
           </h2>
           <p>
-            Career OS offers a free tier with usage limits and a lifetime
-            tier sold via partners (e.g. AppSumo). Lifetime tier is a
-            one-time purchase that grants unlimited interviews for the
-            life of the service. Refund eligibility is governed by the
-            policy of the platform you purchased through (e.g.
-            AppSumo&apos;s 60-day refund policy). Contact the original
-            seller for refund requests.
+            Elevra offers a free tier with usage limits and a lifetime
+            tier offered through select partner platforms. The lifetime
+            tier is a one-time purchase that grants unlimited interviews
+            for the life of the service. Refund eligibility is governed
+            by the policy of the platform you purchased through; contact
+            the original seller for refund requests.
           </p>
         </section>
 
@@ -121,7 +120,7 @@ export default function TermsPage() {
             7. Intellectual property
           </h2>
           <p>
-            Career OS, the brand, the design, and the underlying code are
+            Elevra, the brand, the design, and the underlying code are
             ours. Your interview answers are yours. The AI-generated
             questions and feedback are produced for your use; we
             don&apos;t claim ownership over what Claude generates for
@@ -185,10 +184,10 @@ export default function TermsPage() {
           <p>
             Questions about these Terms — email{" "}
             <a
-              href="mailto:hello@career-os.app"
+              href="mailto:hello@elevra.app"
               className="underline decoration-foreground/40 underline-offset-2 hover:decoration-foreground"
             >
-              hello@career-os.app
+              hello@elevra.app
             </a>
             .
           </p>
@@ -202,7 +201,7 @@ export default function TermsPage() {
       </div>
 
       <footer className="mt-16 flex flex-col gap-3 border-t border-foreground/10 pt-6 text-xs text-foreground/50 sm:flex-row sm:items-center sm:justify-between">
-        <Link href="/" aria-label="Career OS">
+        <Link href="/" aria-label="Elevra">
           <Wordmark variant="light" className="h-5 w-auto" />
         </Link>
         <div className="flex gap-4">
