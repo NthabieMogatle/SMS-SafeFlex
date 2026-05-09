@@ -170,7 +170,7 @@ export default async function DashboardPage() {
             </p>
           </div>
           <Link
-            href="/interview?fresh=1"
+            href="/setup?new=1"
             className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background hover:opacity-90"
           >
             Start new interview

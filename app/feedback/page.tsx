@@ -89,7 +89,7 @@ export default async function FeedbackPage({
               Go to dashboard
             </Link>
             <Link
-              href="/interview?fresh=1"
+              href="/setup?new=1"
               className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background hover:opacity-90"
             >
               Start an interview
@@ -207,7 +207,7 @@ export default async function FeedbackPage({
             ← Back to dashboard
           </Link>
           <Link
-            href="/interview?fresh=1"
+            href="/setup?new=1"
             className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background hover:opacity-90"
           >
             New interview
