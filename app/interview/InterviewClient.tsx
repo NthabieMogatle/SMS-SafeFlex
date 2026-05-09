@@ -18,7 +18,7 @@ type ScoreResult = {
   rewrite: string;
 };
 
-const DRAFT_KEY = "career-os:draft:v1";
+const DRAFT_KEY = "elevra:draft:v1";
 const DRAFT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 type Draft = {

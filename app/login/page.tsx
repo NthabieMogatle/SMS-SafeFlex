@@ -3,7 +3,7 @@ import LoginForm from "./LoginForm";
 
 export const metadata: Metadata = {
   title: "Log in",
-  description: "Log in to Career OS to continue practicing mock interviews.",
+  description: "Log in to Elevra to continue practicing mock interviews.",
 };
 
 export default function LoginPage() {

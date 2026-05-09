@@ -12,12 +12,12 @@ export function Wordmark({
 
   return (
     <svg
-      viewBox="0 0 320 72"
+      viewBox="0 0 220 72"
       role="img"
-      aria-label="Career OS"
+      aria-label="Elevra"
       className={className}
     >
-      <title>Career OS</title>
+      <title>Elevra</title>
       <g
         transform="translate(8 16)"
         stroke={accent}
@@ -36,10 +36,10 @@ export function Wordmark({
         letterSpacing="-0.02em"
       >
         <tspan fontWeight="500" fill={text}>
-          Career
+          Elev
         </tspan>
-        <tspan fontWeight="800" fill={accent} dx="6">
-          OS
+        <tspan fontWeight="800" fill={accent}>
+          ra
         </tspan>
       </text>
     </svg>
