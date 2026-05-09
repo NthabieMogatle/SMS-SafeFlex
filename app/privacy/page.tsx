@@ -4,7 +4,7 @@ import { Wordmark } from "@/components/Logo";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
-  description: "How Elevra collects, uses, and stores your data.",
+  description: "How AI Mock Interview Coach collects, uses, and stores your data.",
 };
 
 const UPDATED = "May 8, 2026";
@@ -13,7 +13,7 @@ export default function PrivacyPage() {
   return (
     <main className="mx-auto max-w-2xl px-6 py-12">
       <header className="mb-10 flex items-center justify-between">
-        <Link href="/" aria-label="Elevra">
+        <Link href="/" aria-label="AI Mock Interview Coach">
           <Wordmark variant="light" className="h-7 w-auto" />
         </Link>
         <Link
@@ -33,7 +33,8 @@ export default function PrivacyPage() {
             What we collect
           </h2>
           <p>
-            When you create an Elevra account we store your email address
+            When you create an account on AI Mock Interview Coach we
+            store your email address
             and password (hashed) via our authentication provider. When you
             complete an interview we store the role, industry, and experience
             level you entered, the interview questions generated for you,
@@ -105,7 +106,7 @@ export default function PrivacyPage() {
             Children
           </h2>
           <p>
-            Elevra is not intended for children under 16. If you believe
+            AI Mock Interview Coach is not intended for children under 16. If you believe
             a child has created an account, contact us and we&apos;ll
             remove it.
           </p>
@@ -148,7 +149,7 @@ export default function PrivacyPage() {
       </div>
 
       <footer className="mt-16 flex flex-col gap-3 border-t border-foreground/10 pt-6 text-xs text-foreground/50 sm:flex-row sm:items-center sm:justify-between">
-        <Link href="/" aria-label="Elevra">
+        <Link href="/" aria-label="AI Mock Interview Coach">
           <Wordmark variant="light" className="h-5 w-auto" />
         </Link>
         <div className="flex gap-4">

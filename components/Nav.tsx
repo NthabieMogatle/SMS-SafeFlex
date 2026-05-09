@@ -15,7 +15,7 @@ export default async function Nav() {
         <Link
           href={user ? "/interview" : "/"}
           className="flex items-center"
-          aria-label="Elevra"
+          aria-label="AI Mock Interview Coach"
         >
           <Wordmark variant="light" className="h-7 w-auto" />
         </Link>

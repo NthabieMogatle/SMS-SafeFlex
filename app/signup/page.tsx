@@ -4,7 +4,7 @@ import SignupForm from "./SignupForm";
 export const metadata: Metadata = {
   title: "Sign up",
   description:
-    "Create your Elevra account and start practicing AI-coached mock interviews.",
+    "Create your account and start practicing AI-coached mock interviews.",
 };
 
 export default function SignupPage() {

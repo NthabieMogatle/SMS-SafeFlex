@@ -68,7 +68,7 @@ click the link from `elevra.app`.
 
 ## 6. Update environment variables in Vercel
 
-1. Vercel → elevra project → **Settings** → **Environment Variables**.
+1. Vercel → your project → **Settings** → **Environment Variables**.
 2. Edit `NEXT_PUBLIC_SITE_URL` → set value to:
    ```
    https://elevra.app
@@ -82,9 +82,9 @@ click the link from `elevra.app`.
 
 Walk through the full flow once on `https://elevra.app`:
 
-1. Open the homepage. Verify the Elevra wordmark in the nav, hero
-   tagline ("The interview, elevated"), and pricing tier reading
-   "Lifetime / One-time".
+1. Open the homepage. Verify the wordmark in the nav, hero tagline
+   ("Practice interviews with AI. Get hired faster."), and pricing
+   tier reading "Lifetime / One-time".
 2. Sign up with a fresh test email. Click the confirmation link from
    your inbox — it should redirect to `elevra.app/setup`, not the old
    Vercel URL.
@@ -94,8 +94,9 @@ Walk through the full flow once on `https://elevra.app`:
 5. In Safari/Chrome, view source on the homepage and check the
    `<meta property="og:image">` tag points at `elevra.app/opengraph-image`.
 6. Share `https://elevra.app` to iMessage / WhatsApp / X / LinkedIn —
-   the preview should show "Elevra — The interview, elevated." with
-   the dark-navy + cyan OG image.
+   the preview should show "AI Mock Interview Coach — Practice
+   interviews with AI. Get hired faster." with the dark-navy + cyan
+   OG image.
 
 ## 8. Optional polish
 

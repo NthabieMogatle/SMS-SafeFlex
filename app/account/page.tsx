@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Account",
-  description: "Manage your Elevra plan and redeem launch codes.",
+  description: "Manage your plan and redeem launch codes.",
 };
 
 export default async function AccountPage() {
@@ -41,7 +41,7 @@ export default async function AccountPage() {
               </div>
               <p className="text-sm text-foreground/70">
                 Unlimited interviews, full feedback, history, and themes —
-                forever. Thanks for supporting Elevra.
+                forever. Thanks for your support.
               </p>
             </>
           ) : (

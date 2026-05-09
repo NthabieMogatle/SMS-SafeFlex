@@ -1,10 +1,10 @@
-# Elevra
+# AI Mock Interview Coach
 
-> The interview, elevated.
+> Practice interviews with AI. Get hired faster.
 
-Elevra is an AI mock interview coach that elevates your interview answers
-— pulling rough responses up to interview-winning quality with AI scoring,
-targeted feedback, and rewritten model answers.
+An AI-powered mock interview tool that scores your answers, surfaces
+targeted feedback, and rewrites them to interview-winning quality —
+calibrated to your role, industry, and experience.
 
 ## What it does
 
@@ -34,7 +34,7 @@ targeted feedback, and rewritten model answers.
 
 ```bash
 git clone <this repo>
-cd elevra
+cd ai-mock-interview-coach
 npm install
 cp .env.local.example .env.local
 # fill in NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY,
