@@ -7,6 +7,10 @@ export const metadata: Metadata = {
     "Log in to AI Mock Interview Coach to continue practicing mock interviews.",
 };
 
-export default function LoginPage() {
-  return <LoginForm />;
+export default function LoginPage({
+  searchParams,
+}: {
+  searchParams: { reset?: string };
+}) {
+  return <LoginForm resetSuccess={searchParams.reset === "success"} />;
 }

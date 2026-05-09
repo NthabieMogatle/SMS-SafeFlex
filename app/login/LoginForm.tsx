@@ -5,7 +5,11 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-export default function LoginForm() {
+export default function LoginForm({
+  resetSuccess = false,
+}: {
+  resetSuccess?: boolean;
+}) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -42,6 +46,11 @@ export default function LoginForm() {
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-12">
       <h1 className="mb-6 text-2xl font-semibold">Log in</h1>
+      {resetSuccess && (
+        <div className="mb-6 rounded-md border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-300">
+          Password updated. Log in with your new password below.
+        </div>
+      )}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="mb-1 block text-sm font-medium" htmlFor="email">
@@ -58,9 +67,17 @@ export default function LoginForm() {
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium" htmlFor="password">
-            Password
-          </label>
+          <div className="mb-1 flex items-baseline justify-between">
+            <label className="block text-sm font-medium" htmlFor="password">
+              Password
+            </label>
+            <Link
+              href="/auth/forgot-password"
+              className="text-xs text-cyan-400 hover:text-cyan-300"
+            >
+              Forgot password?
+            </Link>
+          </div>
           <input
             id="password"
             type="password"
