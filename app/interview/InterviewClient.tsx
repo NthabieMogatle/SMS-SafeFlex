@@ -218,7 +218,7 @@ export default function InterviewClient({
       return;
     }
     clearDraft();
-    window.location.href = "/interview?fresh=1";
+    router.push("/setup?new=1");
   }
 
   async function handleSubmit() {
