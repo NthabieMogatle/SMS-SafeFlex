@@ -104,6 +104,13 @@ Pushes to `main` auto-deploy via Vercel. The custom domain `elevra.app`
 points at the production deployment. See `docs/custom-domain.md` for
 domain setup details.
 
+## Remote development
+
+If you want to keep iterating on the repo from your phone or another
+device while your dev machine runs the local server and holds the
+`.env.local` secrets, see `docs/remote-control.md` for how to drive a
+running Claude Code session from claude.ai or the Claude mobile app.
+
 ## License
 
 Proprietary.
