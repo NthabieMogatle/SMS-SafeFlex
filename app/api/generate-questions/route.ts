@@ -26,6 +26,46 @@ export async function POST(req: Request) {
   }
   const { role, industry, experienceLevel } = parsed.data;
 
+  // Fetch this user's previous Q1s for the same role/industry/level so we can
+  // tell the model not to repeat them. Q1 is highly constrained ("behavioral
+  // STAR opening") so without anti-repetition context the model converges on
+  // the same most-likely opener across sessions.
+  let previousFirstQuestions: string[] = [];
+  try {
+    const { data: priorInterviews } = await supabase
+      .from("interviews")
+      .select("questions")
+      .eq("user_id", user.id)
+      .eq("role", role)
+      .eq("industry", industry)
+      .eq("experience_level", experienceLevel)
+      .order("created_at", { ascending: false })
+      .limit(5);
+    previousFirstQuestions = (priorInterviews ?? [])
+      .map((row) => {
+        const qs = (row as { questions: unknown }).questions;
+        return Array.isArray(qs) && typeof qs[0] === "string" ? qs[0] : null;
+      })
+      .filter((q): q is string => !!q);
+  } catch {
+    // Best-effort: if the lookup fails (e.g. column missing in some envs),
+    // fall back to generating without anti-repetition context.
+  }
+
+  const antiRepetitionBlock =
+    previousFirstQuestions.length > 0
+      ? `\n\nANTI-REPETITION FOR POSITION 1 — CRITICAL:
+This candidate has previously been asked these Position 1 (behavioral) opening questions for the same role, industry, and experience level:
+${previousFirstQuestions.map((q, i) => `${i + 1}. ${q}`).join("\n")}
+
+Your Position 1 question MUST be substantially different from every question above. "Substantially different" means:
+- A different scenario, situation, or competency being probed (e.g. conflict, failure, leadership, ambiguity, prioritization, stakeholder pushback, scope change, mentoring, technical debt, cross-functional disagreement) — pick one NOT covered above
+- Not just a rephrasing or a swapped closing clause of an above question
+- The first ~15 words must not closely mirror any above question
+
+Still must satisfy the Position 1 format (STAR-prompt phrasing, behavioral, specific past experience).`
+      : "";
+
   const system = `You are a senior hiring manager at a top company in the candidate's target industry. You have run hundreds of interviews and know what separates great candidates from average ones.
 
 Generate exactly 5 interview questions for a candidate matching the provided role, industry, and experience level. You MUST follow this category mix in this exact order — do not skip, swap, or duplicate categories:
@@ -41,7 +81,7 @@ Calibrate difficulty to the experience level:
 - "mid": assume independent feature ownership; probe real production trade-offs and decision-making
 - "senior": probe judgment, mentorship, ambiguity, multi-team coordination, and technical leadership
 
-Each question must be specific to the industry — avoid generic questions that could apply to any company. Each should be answerable in 2-5 minutes of speaking. Avoid yes/no questions or trivia.
+Each question must be specific to the industry — avoid generic questions that could apply to any company. Each should be answerable in 2-5 minutes of speaking. Avoid yes/no questions or trivia.${antiRepetitionBlock}
 
 Reply with ONLY a JSON object: {"questions": string[]} containing exactly 5 questions in the order above. No prose, no code fences, no commentary.`;
 
@@ -52,6 +92,10 @@ Reply with ONLY a JSON object: {"questions": string[]} containing exactly 5 ques
     message = await anthropic.messages.create({
       model: CLAUDE_MODEL,
       max_tokens: 1024,
+      // Higher temperature combats Q1 convergence: with the default
+      // sampling, the heavily-constrained Position 1 prompt keeps producing
+      // the same most-likely opener across sessions for identical inputs.
+      temperature: 0.85,
       system,
       messages: [
         { role: "user", content: userPrompt },
