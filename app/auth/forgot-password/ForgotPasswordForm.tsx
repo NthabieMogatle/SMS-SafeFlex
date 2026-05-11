@@ -4,22 +4,6 @@ import Link from "next/link";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-function buildRedirectTo(): string {
-  const envUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-  // Prefer the configured site URL in production. Fall back to the current
-  // origin in dev / preview so reset links work without env vars.
-  const baseRaw =
-    envUrl && envUrl.length > 0
-      ? envUrl
-      : typeof window !== "undefined"
-        ? window.location.origin
-        : "https://elevra.app";
-  const withProtocol = /^https?:\/\//i.test(baseRaw)
-    ? baseRaw
-    : `https://${baseRaw}`;
-  return `${withProtocol.replace(/\/$/, "")}/auth/reset-password`;
-}
-
 export default function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -34,7 +18,7 @@ export default function ForgotPasswordForm() {
       const supabase = createClient();
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(
         email.trim(),
-        { redirectTo: buildRedirectTo() },
+        { redirectTo: `${window.location.origin}/auth/reset-password` },
       );
 
       // Supabase intentionally doesn't reveal whether the email exists, to
