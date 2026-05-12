@@ -2083,6 +2083,13 @@ double CalculateLotSize(string symbol, double entry, double sl)
    double minLot  = SymbolInfoDouble(symbol, SYMBOL_VOLUME_MIN);
    double maxLot  = SymbolInfoDouble(symbol, SYMBOL_VOLUME_MAX);
    double lotStep = SymbolInfoDouble(symbol, SYMBOL_VOLUME_STEP);
+   if(lotStep <= 0) lotStep = 0.01;
+
+   // Batch A #3: step-aware digit count. Hardcoding 2 digits broke instruments
+   // with 0.001 step (NormalizeDouble(0.001, 2) -> 0.00 -> broker reject).
+   int stepDigits = (lotStep >= 1.0) ? 0 : (int)MathCeil(-MathLog10(lotStep));
+   if(stepDigits < 0) stepDigits = 0;
+   if(stepDigits > 8) stepDigits = 8;
 
    // -- HARD CAP: never allow more than 1.0 lot regardless of settings
    // This protects against runaway lot calculations on volatile indices
@@ -2093,7 +2100,7 @@ double CalculateLotSize(string symbol, double entry, double sl)
    {
       double lot = MathFloor(ManualLotSize / lotStep) * lotStep;
       lot = MathMax(minLot, MathMin(hardCap, lot));
-      return NormalizeDouble(lot, 2);
+      return NormalizeDouble(lot, stepDigits);
    }
 
    // -- AUTO RISK MODE
@@ -2110,7 +2117,7 @@ double CalculateLotSize(string symbol, double entry, double sl)
 
    // Apply hard cap ? never exceed 1.0 lot on auto mode
    lot = MathMax(minLot, MathMin(hardCap, lot));
-   return NormalizeDouble(lot, 2);
+   return NormalizeDouble(lot, stepDigits);
 }
 
 //+------------------------------------------------------------------+
