@@ -1867,8 +1867,23 @@ void ProcessSignal(SMCSignal &sig, bool tradingFull=false)
    }
 
    // Send alerts (only reaches here if NOT daily limit hit)
+   // Batch A #2: SendNotification body limit on MT5 is 255 chars; the long
+   // msgBody (~500-700 chars) gets silently truncated or dropped. Build a
+   // compact body for push, keep the long form for email/Telegram.
+   string pushBody = StringFormat("%s%s %s %s | %d%% | E:%s SL:%s TP:%s R:1:%.1f",
+                                  sig.isSniper ? "[SNIPER] " : "",
+                                  dirStr,
+                                  sig.shortName,
+                                  sig.tradeType,
+                                  sig.confidence,
+                                  DoubleToString(sig.entry, digs),
+                                  DoubleToString(sig.sl,    digs),
+                                  DoubleToString(sig.tp1,   digs),
+                                  sig.rr);
+   if(StringLen(pushBody) > 250) pushBody = StringSubstr(pushBody, 0, 250);
+
    if(SoundAlert)        PlaySound(sig.isSniper ? "alert2.wav" : AlertSound);
-   if(PushNotification)  SendNotification(msgTitle+"\n"+msgBody);
+   if(PushNotification)  SendNotification(pushBody);
    if(EmailAlert)        SendMail(msgTitle, msgBody);
    if(TelegramAlert)     SendTelegramMessage(msgTitle+"\n"+msgBody);
    if(symIndex >= 0)
