@@ -275,6 +275,28 @@ datetime lastScanTime[];
 string   activeInstruments[];
 int      activeCount = 0;
 
+// Smart-state persistence (Batch A #1): keys scoped by MagicNumber so Deriv
+// and Forex EAs do not stomp each other's cooldown state across restarts.
+string GV_KEY(string name) { return "JSMC_DERIV_" + IntegerToString(MagicNumber) + "_" + name; }
+
+void LoadSmartState()
+{
+   if(GlobalVariableCheck(GV_KEY("consecutiveLosses"))) consecutiveLosses = (int)GlobalVariableGet(GV_KEY("consecutiveLosses"));
+   if(GlobalVariableCheck(GV_KEY("lossBlockedSince"))) lossBlockedSince   = (datetime)(long)GlobalVariableGet(GV_KEY("lossBlockedSince"));
+   if(GlobalVariableCheck(GV_KEY("lastTradeDay")))     lastTradeDay       = (datetime)(long)GlobalVariableGet(GV_KEY("lastTradeDay"));
+   if(GlobalVariableCheck(GV_KEY("dayStartBalance"))) dayStartBalance     = GlobalVariableGet(GV_KEY("dayStartBalance"));
+   if(GlobalVariableCheck(GV_KEY("dailyTradeCount"))) dailyTradeCount     = (int)GlobalVariableGet(GV_KEY("dailyTradeCount"));
+}
+
+void SaveSmartState()
+{
+   GlobalVariableSet(GV_KEY("consecutiveLosses"), (double)consecutiveLosses);
+   GlobalVariableSet(GV_KEY("lossBlockedSince"),  (double)(long)lossBlockedSince);
+   GlobalVariableSet(GV_KEY("lastTradeDay"),      (double)(long)lastTradeDay);
+   GlobalVariableSet(GV_KEY("dayStartBalance"),   dayStartBalance);
+   GlobalVariableSet(GV_KEY("dailyTradeCount"),   (double)dailyTradeCount);
+}
+
 // Timeframes
 // Scalp chain: M15(bias) -> M5(liq/SMS) -> M1(BOS+OB+entry) | TP on M5
 ENUM_TIMEFRAMES scalp_bias_tf  = PERIOD_M15;
@@ -306,6 +328,13 @@ int OnInit()
    dayStartBalance = startBalance;
    peakEquity      = startBalance;
    lastTradeDay    = TimeCurrent();
+
+   // Batch A #1: restore persisted smart-rules state (cooldown timer, streak,
+   // daily-trade count, day-anchor balance). Then run CheckDailyReset so a stale
+   // day rolls over and dayStartBalance is re-anchored to today's open balance.
+   LoadSmartState();
+   CheckDailyReset();
+   SaveSmartState();   // Persist defaults on brand-new install so restart is deterministic from OnInit.
 
    // Build active instruments list
    BuildInstrumentList();
@@ -1884,6 +1913,7 @@ void ProcessSignal(SMCSignal &sig, bool tradingFull=false)
       Print("[AUTO] Auto executing: ", sig.direction==1?"BUY":"SELL", " ",
             sig.shortName, " | Confidence:", sig.confidence, "%");
       dailyTradeCount++;
+      SaveSmartState();   // Batch A #1
       ExecuteSignal(sig);
       if(ShowDashboard) DrawDashboard();
       return;
@@ -1900,6 +1930,7 @@ void ProcessSignal(SMCSignal &sig, bool tradingFull=false)
 
    // -- FALLBACK: execute directly
    dailyTradeCount++;
+   SaveSmartState();   // Batch A #1
    ExecuteSignal(sig);
 }
 
@@ -2154,6 +2185,7 @@ void OnTradeTransaction(const MqlTradeTransaction &trans,const MqlTradeRequest &
       }
    }
    else breakevenTrades++;
+   SaveSmartState();   // Batch A #1: persist streak/cooldown after every closed deal.
    string sym=HistoryDealGetString(ticket,DEAL_SYMBOL);
    string sn=GetShortName(sym);
    string r2=profit>0?"WIN [OK] +":(profit<0?"LOSS [X] ":"BE [-] ");
@@ -2588,6 +2620,7 @@ void CheckDailyReset()
       smartBlockReason  = "";
       dayStartBalance   = AccountInfoDouble(ACCOUNT_BALANCE);
       lastTradeDay      = TimeCurrent();
+      SaveSmartState();   // Batch A #1: persist new-day anchor immediately.
       Print("[SMART] New day - counters reset. Day balance: $", dayStartBalance);
    }
 }
@@ -2621,6 +2654,7 @@ bool IsSmartRulesAllowed()
             lossBlockedSince  = 0;
             smartRulesBlocked = false;
             smartBlockReason  = "";
+            SaveSmartState();   // Batch A #1: persist reset so cooldown doesn't re-engage on restart.
             Print("[SMART] Loss cooldown expired - auto trading resumed");
             if(PushNotification) SendNotification("[OK] JOJOS SMC - Cooldown ended, auto trading resumed!");
          }
@@ -2701,6 +2735,7 @@ void OnChartEvent(const int id, const long &lparam, const double &dparam, const 
       hasPendingSignal = false;
       ObjectsDeleteAll(0, DB_PREFIX + "CB_");
       dailyTradeCount++;
+      SaveSmartState();   // Batch A #1
       ExecuteSignal(pendingSignal);
       if(ShowDashboard) DrawDashboard();
    }
@@ -2713,5 +2748,5 @@ void OnChartEvent(const int id, const long &lparam, const double &dparam, const 
    }
 }
 
-void OnDeinit(const int reason){ObjectsDeleteAll(0,DB_PREFIX);Print("Jojos SMC Deriv EA stopped. Signals: ",signalCount);}
+void OnDeinit(const int reason){SaveSmartState();ObjectsDeleteAll(0,DB_PREFIX);Print("Jojos SMC Deriv EA stopped. Signals: ",signalCount);}
 //+------------------------------------------------------------------+
