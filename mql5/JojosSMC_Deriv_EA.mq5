@@ -2034,6 +2034,26 @@ void ExecuteSignal(SMCSignal &sig)
       return;
    }
 
+   // Batch A #4: pre-flight margin check. Without this, low-leverage Deriv
+   // accounts produce retcode 10019 (no money) cascades when basket size is too
+   // large. Refuse cleanly with a clear log line instead of failed sends.
+   double marginRequired = 0.0;
+   ENUM_ORDER_TYPE orderType = (sig.direction == 1 ? ORDER_TYPE_BUY : ORDER_TYPE_SELL);
+   double totalLot = lotSize * toPlace;
+   if(!OrderCalcMargin(orderType, sig.symbol, totalLot, marketEntry, marginRequired))
+   {
+      Print("[SKIP] OrderCalcMargin failed for ", sig.shortName, " err=", GetLastError());
+      return;
+   }
+   double freeMargin = AccountInfoDouble(ACCOUNT_MARGIN_FREE);
+   if(marginRequired > freeMargin)
+   {
+      Print("[SKIP] Insufficient margin: need $", DoubleToString(marginRequired, 2),
+            " have $", DoubleToString(freeMargin, 2),
+            " for ", toPlace, "x ", DoubleToString(lotSize, 3), " on ", sig.shortName);
+      return;
+   }
+
    int placed = 0;
    for(int p = 0; p < toPlace; p++)
    {
