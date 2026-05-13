@@ -72,13 +72,24 @@ export function useVoiceInput(
       typeof window.MediaRecorder !== "undefined";
     setSupported(ok);
     return () => {
-      try {
-        if (recorderRef.current && recorderRef.current.state !== "inactive") {
-          recorderRef.current.stop();
+      // On unmount, discard any in-flight recording instead of uploading it:
+      // detach the handlers so recorder.stop() doesn't fire the upload path
+      // or call setState on an unmounted component.
+      const rec = recorderRef.current;
+      if (rec) {
+        rec.ondataavailable = null;
+        rec.onstop = null;
+        rec.onerror = null;
+        if (rec.state !== "inactive") {
+          try {
+            rec.stop();
+          } catch {
+            /* ignore */
+          }
         }
-      } catch {
-        /* ignore */
       }
+      recorderRef.current = null;
+      chunksRef.current = [];
       releaseStream();
     };
   }, [releaseStream]);
