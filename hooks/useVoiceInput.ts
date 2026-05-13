@@ -1,136 +1,223 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-
-interface SREvent {
-  resultIndex: number;
-  results: ArrayLike<{
-    isFinal: boolean;
-    0: { transcript: string };
-  }>;
-}
-
-interface SRError {
-  error: string;
-}
-
-interface SRInstance {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  start: () => void;
-  stop: () => void;
-  abort: () => void;
-  onresult: ((event: SREvent) => void) | null;
-  onerror: ((event: SRError) => void) | null;
-  onend: (() => void) | null;
-}
-
-interface SRConstructor {
-  new (): SRInstance;
-}
-
-declare global {
-  interface Window {
-    SpeechRecognition?: SRConstructor;
-    webkitSpeechRecognition?: SRConstructor;
-  }
-}
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export type VoiceInput = {
   isRecording: boolean;
+  isTranscribing: boolean;
   error: string | null;
   supported: boolean | null;
-  start: () => void;
+  start: () => Promise<void>;
   stop: () => void;
 };
 
+function pickMimeType(): string | undefined {
+  if (typeof MediaRecorder === "undefined") return undefined;
+  const candidates = [
+    "audio/webm;codecs=opus",
+    "audio/webm",
+    "audio/mp4",
+    "audio/mp4;codecs=mp4a.40.2",
+    "audio/aac",
+  ];
+  for (const t of candidates) {
+    if (MediaRecorder.isTypeSupported(t)) return t;
+  }
+  return undefined;
+}
+
+function extensionFor(mime: string | undefined): string {
+  if (!mime) return "webm";
+  if (mime.includes("webm")) return "webm";
+  if (mime.includes("mp4")) return "mp4";
+  if (mime.includes("aac")) return "aac";
+  if (mime.includes("ogg")) return "ogg";
+  return "webm";
+}
+
 export function useVoiceInput(
-  onResult: (text: string, isFinal: boolean) => void,
+  onTranscript: (text: string) => void,
 ): VoiceInput {
   const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [supported, setSupported] = useState<boolean | null>(null);
-  const recognitionRef = useRef<SRInstance | null>(null);
-  const onResultRef = useRef(onResult);
 
-  // Keep latest callback without re-triggering effects.
-  useEffect(() => {
-    onResultRef.current = onResult;
-  }, [onResult]);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const mimeRef = useRef<string | undefined>(undefined);
+  const onTranscriptRef = useRef(onTranscript);
 
   useEffect(() => {
-    const SR = window.SpeechRecognition ?? window.webkitSpeechRecognition;
-    setSupported(Boolean(SR));
-    return () => {
+    onTranscriptRef.current = onTranscript;
+  }, [onTranscript]);
+
+  const releaseStream = useCallback(() => {
+    streamRef.current?.getTracks().forEach((t) => {
       try {
-        recognitionRef.current?.abort();
+        t.stop();
       } catch {
         /* ignore */
       }
-    };
+    });
+    streamRef.current = null;
   }, []);
 
-  function start() {
+  useEffect(() => {
+    const ok =
+      typeof window !== "undefined" &&
+      typeof navigator !== "undefined" &&
+      !!navigator.mediaDevices?.getUserMedia &&
+      typeof window.MediaRecorder !== "undefined";
+    setSupported(ok);
+    return () => {
+      try {
+        if (recorderRef.current && recorderRef.current.state !== "inactive") {
+          recorderRef.current.stop();
+        }
+      } catch {
+        /* ignore */
+      }
+      releaseStream();
+    };
+  }, [releaseStream]);
+
+  const start = useCallback(async () => {
     setError(null);
-    const SRClass = window.SpeechRecognition ?? window.webkitSpeechRecognition;
-    if (!SRClass) {
+    if (
+      typeof window === "undefined" ||
+      !navigator.mediaDevices?.getUserMedia ||
+      typeof window.MediaRecorder === "undefined"
+    ) {
       setError(
         "Voice input isn't supported in this browser. Try Chrome or Safari.",
       );
       return;
     }
+
+    let stream: MediaStream;
     try {
-      const rec = new SRClass();
-      rec.continuous = true;
-      rec.interimResults = true;
-      rec.lang = "en-US";
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (err) {
+      const name =
+        err && typeof err === "object" && "name" in err
+          ? String((err as { name: unknown }).name)
+          : "";
+      if (name === "NotAllowedError" || name === "SecurityError") {
+        setError(
+          "Microphone access was denied. Allow it in your browser settings and try again.",
+        );
+      } else if (name === "NotFoundError" || name === "OverconstrainedError") {
+        setError("No microphone was found on this device.");
+      } else {
+        setError("Couldn't access the microphone. Try again.");
+      }
+      setIsRecording(false);
+      return;
+    }
 
-      rec.onresult = (event) => {
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const result = event.results[i];
-          const transcript = result[0].transcript;
-          onResultRef.current(transcript, result.isFinal);
+    streamRef.current = stream;
+    const mime = pickMimeType();
+    mimeRef.current = mime;
+    chunksRef.current = [];
+
+    let recorder: MediaRecorder;
+    try {
+      recorder = mime
+        ? new MediaRecorder(stream, { mimeType: mime })
+        : new MediaRecorder(stream);
+    } catch (err) {
+      console.error("MediaRecorder construction failed", err);
+      releaseStream();
+      setError("Couldn't start voice input. Try again.");
+      setIsRecording(false);
+      return;
+    }
+
+    recorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
+    };
+
+    recorder.onerror = () => {
+      setError("Recording failed. Try again.");
+      setIsRecording(false);
+      setIsTranscribing(false);
+      releaseStream();
+    };
+
+    recorder.onstop = async () => {
+      const chunks = chunksRef.current;
+      chunksRef.current = [];
+      releaseStream();
+      setIsRecording(false);
+
+      if (chunks.length === 0) {
+        setIsTranscribing(false);
+        return;
+      }
+
+      const type = mimeRef.current || chunks[0].type || "audio/webm";
+      const blob = new Blob(chunks, { type });
+      if (blob.size === 0) {
+        setIsTranscribing(false);
+        return;
+      }
+
+      setIsTranscribing(true);
+      try {
+        const form = new FormData();
+        const file = new File([blob], `audio.${extensionFor(type)}`, { type });
+        form.append("audio", file);
+
+        const res = await fetch("/api/transcribe", {
+          method: "POST",
+          body: form,
+        });
+        if (!res.ok) {
+          if (res.status === 413) {
+            setError("That recording is too long. Try a shorter clip.");
+          } else {
+            setError("Transcription failed. Try again.");
+          }
+          return;
         }
-      };
+        const data = (await res.json()) as { text?: string };
+        const text = (data.text ?? "").trim();
+        if (text) onTranscriptRef.current(text);
+      } catch {
+        setError("Couldn't reach the transcription service. Try again.");
+      } finally {
+        setIsTranscribing(false);
+      }
+    };
 
-      rec.onerror = (event) => {
-        if (
-          event.error === "not-allowed" ||
-          event.error === "service-not-allowed"
-        ) {
-          setError(
-            "Microphone access was denied. Allow it in your browser settings and try again.",
-          );
-        } else if (event.error === "no-speech" || event.error === "aborted") {
-          // Silent timeout or user-initiated stop — no message needed.
-        } else if (event.error === "network") {
-          setError("Voice input needs a network connection. Try again.");
-        } else {
-          setError(`Voice input error: ${event.error}`);
-        }
-        setIsRecording(false);
-      };
-
-      rec.onend = () => setIsRecording(false);
-
-      recognitionRef.current = rec;
-      rec.start();
+    recorderRef.current = recorder;
+    try {
+      recorder.start();
       setIsRecording(true);
-    } catch {
+    } catch (err) {
+      console.error("MediaRecorder.start failed", err);
+      releaseStream();
       setError("Couldn't start voice input. Try again.");
       setIsRecording(false);
     }
-  }
+  }, [releaseStream]);
 
-  function stop() {
-    try {
-      recognitionRef.current?.stop();
-    } catch {
-      /* ignore */
+  const stop = useCallback(() => {
+    const rec = recorderRef.current;
+    if (rec && rec.state !== "inactive") {
+      try {
+        rec.stop();
+      } catch {
+        /* ignore */
+      }
+    } else {
+      // Nothing to stop — make sure we don't leave UI stuck.
+      setIsRecording(false);
+      releaseStream();
     }
-    setIsRecording(false);
-  }
+  }, [releaseStream]);
 
-  return { isRecording, error, supported, start, stop };
+  return { isRecording, isTranscribing, error, supported, start, stop };
 }

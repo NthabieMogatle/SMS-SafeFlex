@@ -85,24 +85,43 @@ export default function InterviewClient({
   const [scoredCount, setScoredCount] = useState(0);
   const [submitStage, setSubmitStage] = useState<"scoring" | "summarizing" | "saving">("scoring");
   const [restoredFromDraft, setRestoredFromDraft] = useState(false);
-  const [interimVoiceText, setInterimVoiceText] = useState("");
 
-  const handleVoiceResult = useCallback(
-    (text: string, isFinal: boolean) => {
-      const trimmed = text.trim();
-      if (!trimmed) return;
-      if (isFinal) {
-        setCurrentAnswer((prev) => {
-          const base = prev.trim();
-          return base ? `${base} ${trimmed}` : trimmed;
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const handleVoiceResult = useCallback((text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    const ta = textareaRef.current;
+    setCurrentAnswer((prev) => {
+      const hasFocus =
+        ta && typeof document !== "undefined" && document.activeElement === ta;
+      if (hasFocus && ta) {
+        const start = ta.selectionStart ?? prev.length;
+        const end = ta.selectionEnd ?? prev.length;
+        const before = prev.slice(0, start);
+        const after = prev.slice(end);
+        const needsLeadingSpace = before.length > 0 && !/\s$/.test(before);
+        const needsTrailingSpace = after.length > 0 && !/^\s/.test(after);
+        const insert =
+          (needsLeadingSpace ? " " : "") +
+          trimmed +
+          (needsTrailingSpace ? " " : "");
+        const next = before + insert + after;
+        const caret = (before + insert).length;
+        // Restore caret after React updates the value.
+        queueMicrotask(() => {
+          if (textareaRef.current) {
+            textareaRef.current.selectionStart = caret;
+            textareaRef.current.selectionEnd = caret;
+          }
         });
-        setInterimVoiceText("");
-      } else {
-        setInterimVoiceText(trimmed);
+        return next;
       }
-    },
-    [],
-  );
+      const base = prev;
+      if (!base) return trimmed;
+      return /\s$/.test(base) ? base + trimmed : `${base} ${trimmed}`;
+    });
+  }, []);
 
   const voice = useVoiceInput(handleVoiceResult);
 
@@ -415,6 +434,7 @@ export default function InterviewClient({
       <h1 className="mb-6 text-xl font-semibold">{questions[currentIndex]}</h1>
       <div className="relative">
         <textarea
+          ref={textareaRef}
           value={currentAnswer}
           onChange={(e) => setCurrentAnswer(e.target.value)}
           rows={8}
@@ -425,18 +445,38 @@ export default function InterviewClient({
           <button
             type="button"
             onClick={voice.isRecording ? voice.stop : voice.start}
+            disabled={voice.isTranscribing}
             aria-pressed={voice.isRecording}
-            aria-label={voice.isRecording ? "Stop voice input" : "Start voice input"}
-            title={voice.isRecording ? "Stop recording" : "Speak your answer"}
+            aria-label={
+              voice.isRecording
+                ? "Stop voice input"
+                : voice.isTranscribing
+                  ? "Transcribing"
+                  : "Start voice input"
+            }
+            title={
+              voice.isRecording
+                ? "Stop recording"
+                : voice.isTranscribing
+                  ? "Transcribing…"
+                  : "Speak your answer"
+            }
             className={
               "absolute right-2 top-2 flex h-9 w-9 items-center justify-center rounded-full border transition " +
               (voice.isRecording
                 ? "animate-pulse border-red-500 bg-red-500/15 text-red-300"
-                : "border-foreground/20 text-foreground/70 hover:bg-foreground/5")
+                : voice.isTranscribing
+                  ? "border-foreground/20 text-foreground/60"
+                  : "border-foreground/20 text-foreground/70 hover:bg-foreground/5")
             }
           >
             {voice.isRecording ? (
               <span aria-hidden className="block h-3 w-3 rounded-sm bg-red-400" />
+            ) : voice.isTranscribing ? (
+              <span
+                aria-hidden
+                className="block h-3 w-3 animate-spin rounded-full border-2 border-foreground/40 border-t-transparent"
+              />
             ) : (
               <svg
                 aria-hidden
@@ -460,11 +500,12 @@ export default function InterviewClient({
       <div className="mt-1 flex flex-wrap items-center justify-between gap-2 text-[10px] text-foreground/40">
         <span>Auto-saved as you type.</span>
         {voice.supported && voice.isRecording && (
-          <span className="text-red-400">
-            Listening{interimVoiceText ? `: "${interimVoiceText}"` : "…"}
-          </span>
+          <span className="text-red-400">Recording… tap the mic to stop.</span>
         )}
-        {voice.supported && !voice.isRecording && (
+        {voice.supported && !voice.isRecording && voice.isTranscribing && (
+          <span>Transcribing…</span>
+        )}
+        {voice.supported && !voice.isRecording && !voice.isTranscribing && (
           <span>Tap the mic to speak your answer.</span>
         )}
       </div>
