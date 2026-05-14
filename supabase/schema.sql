@@ -16,20 +16,37 @@ create table if not exists public.profiles (
 
 -- =============================================================
 -- interviews: one row per mock interview session
---   questions: string[]                e.g. ["Tell me about...","..."]
---   answers:   string[]                user-typed answers, same order
---   feedback:  FeedbackItem[]          Claude's scored report
---   score:     overall avg (0-10)
+--   questions:        string[]              e.g. ["Tell me about...","..."]
+--   answers:          string[]              user-typed answers, same order
+--   feedback:         FeedbackItem[]        Claude's scored report
+--   themes:           string[]              top coaching themes (nullable)
+--   score:            overall avg (0-10)
+--   role/industry/experience_level: snapshot of the profile config used
+--     for this interview. Kept on the row so feedback/dashboard pages can
+--     show the config without re-joining profiles, and so the Q1
+--     anti-repetition lookup in /api/generate-questions can read prior Q1s
+--     for the current user.
 -- =============================================================
 create table if not exists public.interviews (
-  id         uuid primary key default gen_random_uuid(),
-  user_id    uuid not null references auth.users(id) on delete cascade,
-  questions  jsonb not null,
-  answers    jsonb,
-  feedback   jsonb,
-  score      numeric(4,2),
-  created_at timestamptz not null default now()
+  id               uuid primary key default gen_random_uuid(),
+  user_id          uuid not null references auth.users(id) on delete cascade,
+  role             text,
+  industry         text,
+  experience_level text,
+  questions        jsonb not null,
+  answers          jsonb,
+  feedback         jsonb,
+  themes           jsonb,
+  score            numeric(4,2),
+  created_at       timestamptz not null default now()
 );
+
+-- Bring older deployments up to date if the table already exists without
+-- these columns. Safe to re-run.
+alter table public.interviews add column if not exists role             text;
+alter table public.interviews add column if not exists industry         text;
+alter table public.interviews add column if not exists experience_level text;
+alter table public.interviews add column if not exists themes           jsonb;
 
 create index if not exists interviews_user_id_created_at_idx
   on public.interviews(user_id, created_at desc);
