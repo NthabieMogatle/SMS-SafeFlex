@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { anthropic, CLAUDE_MODEL } from "@/lib/anthropic";
 import { createClient } from "@/lib/supabase/server";
+import { checkRateLimit, rateLimitedResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -17,6 +18,15 @@ export async function POST(req: Request) {
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const rateLimit = await checkRateLimit(
+    supabase,
+    user.id,
+    "summarize-themes",
+    30,
+    60 * 60,
+  );
+  if (!rateLimit.ok) return rateLimitedResponse(rateLimit);
 
   const parsed = RequestSchema.safeParse(await req.json());
   if (!parsed.success) {

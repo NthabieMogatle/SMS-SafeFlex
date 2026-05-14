@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { anthropic, CLAUDE_MODEL } from "@/lib/anthropic";
 import { createClient } from "@/lib/supabase/server";
+import { loadPlanStatus } from "@/lib/plan";
+import { checkRateLimit, rateLimitedResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -19,6 +21,28 @@ export async function POST(req: Request) {
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // Server-side plan gate. The UI already checks this at /interview, but
+  // hitting this endpoint directly with a valid session would bypass that
+  // and run unlimited free-tier interviews against the Anthropic budget.
+  const plan = await loadPlanStatus(supabase, user.id);
+  if (!plan.canStartInterview) {
+    return NextResponse.json(
+      {
+        error: `You've used all ${plan.monthlyLimit} of your free interviews this month. Upgrade to Lifetime for unlimited access.`,
+      },
+      { status: 402 },
+    );
+  }
+
+  const rateLimit = await checkRateLimit(
+    supabase,
+    user.id,
+    "generate-questions",
+    30,
+    60 * 60,
+  );
+  if (!rateLimit.ok) return rateLimitedResponse(rateLimit);
 
   const parsed = RequestSchema.safeParse(await req.json());
   if (!parsed.success) {
