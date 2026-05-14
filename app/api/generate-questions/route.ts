@@ -26,19 +26,18 @@ export async function POST(req: Request) {
   }
   const { role, industry, experienceLevel } = parsed.data;
 
-  // Fetch this user's previous Q1s for the same role/industry/level so we can
-  // tell the model not to repeat them. Q1 is highly constrained ("behavioral
-  // STAR opening") so without anti-repetition context the model converges on
-  // the same most-likely opener across sessions.
+  // Fetch this user's previous Q1s across ALL role/industry/level configs.
+  // The original fix scoped this lookup to the same (role, industry, level)
+  // bucket, which meant the user's first interview in any new bucket saw an
+  // empty anti-repetition context — the exact case where Q1 most strongly
+  // converges on the same most-likely opener. Cross-config lookup gives
+  // coverage from interview 2 onward regardless of config changes.
   let previousFirstQuestions: string[] = [];
   try {
     const { data: priorInterviews } = await supabase
       .from("interviews")
       .select("questions")
       .eq("user_id", user.id)
-      .eq("role", role)
-      .eq("industry", industry)
-      .eq("experience_level", experienceLevel)
       .order("created_at", { ascending: false })
       .limit(5);
     previousFirstQuestions = (priorInterviews ?? [])
@@ -55,22 +54,43 @@ export async function POST(req: Request) {
   const antiRepetitionBlock =
     previousFirstQuestions.length > 0
       ? `\n\nANTI-REPETITION FOR POSITION 1 — CRITICAL:
-This candidate has previously been asked these Position 1 (behavioral) opening questions for the same role, industry, and experience level:
+This candidate has previously been asked these Position 1 (behavioral) opening questions in prior interviews:
 ${previousFirstQuestions.map((q, i) => `${i + 1}. ${q}`).join("\n")}
 
 Your Position 1 question MUST be substantially different from every question above. "Substantially different" means:
-- A different scenario, situation, or competency being probed (e.g. conflict, failure, leadership, ambiguity, prioritization, stakeholder pushback, scope change, mentoring, technical debt, cross-functional disagreement) — pick one NOT covered above
+- A different scenario or competency being probed than any above
 - Not just a rephrasing or a swapped closing clause of an above question
 - The first ~15 words must not closely mirror any above question
 
-Still must satisfy the Position 1 format (STAR-prompt phrasing, behavioral, specific past experience).`
+Still must satisfy the Position 1 format (STAR-prompt phrasing, behavioral, specific past experience) and the scenario seed below.`
       : "";
+
+  // Scenario seed: pick one behavioral competency at random per request and
+  // require Position 1 to center on it. This is the cold-start defense —
+  // when the anti-repetition history is empty (first interview by a new
+  // user, or first interview in a new role/industry/level bucket), the
+  // model otherwise converges on the same most-likely opener for identical
+  // inputs. Forcing a randomly-chosen scenario breaks that attractor.
+  const SCENARIO_SEEDS = [
+    "a conflict with a teammate or stakeholder",
+    "a failure or a project that didn't go as planned",
+    "shifting requirements or a major scope change mid-project",
+    "mentoring or developing a more junior colleague",
+    "operating under significant ambiguity or incomplete information",
+    "competing priorities or having to deprioritize important work",
+    "pushback from a senior stakeholder or executive",
+    "paying down technical debt or refactoring a critical system",
+    "a cross-functional disagreement (e.g. eng vs design, eng vs PM)",
+    "delivering difficult news to a customer, exec, or team",
+  ];
+  const scenarioSeed =
+    SCENARIO_SEEDS[Math.floor(Math.random() * SCENARIO_SEEDS.length)];
 
   const system = `You are a senior hiring manager at a top company in the candidate's target industry. You have run hundreds of interviews and know what separates great candidates from average ones.
 
 Generate exactly 5 interview questions for a candidate matching the provided role, industry, and experience level. You MUST follow this category mix in this exact order — do not skip, swap, or duplicate categories:
 
-POSITION 1 — Behavioral. Must begin with "Tell me about a time...", "Describe a situation when...", or similar STAR-prompt phrasing. Asks for a specific past experience.
+POSITION 1 — Behavioral. Must begin with "Tell me about a time...", "Describe a situation when...", or similar STAR-prompt phrasing. Asks for a specific past experience. For THIS interview, the Position 1 scenario MUST center on: ${scenarioSeed}. Do not substitute a different competency.
 POSITION 2 — Technical/role-specific. Probes depth in one area of the candidate's craft. Concrete, hands-on.
 POSITION 3 — Technical/role-specific. A DIFFERENT technical area than position 2. Do not repeat the topic.
 POSITION 4 — Systems/design or scenario. Requires structured thinking and explicit trade-off reasoning. Open-ended.
