@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import PasswordInput from "@/components/ui/password-input";
 
 export default function LoginForm({
   resetSuccess = false,
@@ -78,14 +79,12 @@ export default function LoginForm({
               Forgot password?
             </Link>
           </div>
-          <input
+          <PasswordInput
             id="password"
-            type="password"
             required
             autoComplete="current-password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-md border border-foreground/20 bg-transparent px-3 py-2"
+            onChange={setPassword}
           />
         </div>
         {error && <p className="text-sm text-red-500">{error}</p>}
