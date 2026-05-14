@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { checkRateLimit, rateLimitedResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -15,6 +16,15 @@ export async function POST(req: Request) {
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const rateLimit = await checkRateLimit(
+    supabase,
+    user.id,
+    "transcribe",
+    200,
+    60 * 60,
+  );
+  if (!rateLimit.ok) return rateLimitedResponse(rateLimit);
 
   if (!process.env.OPENAI_API_KEY) {
     console.error("transcribe: OPENAI_API_KEY is not set");

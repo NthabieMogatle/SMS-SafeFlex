@@ -52,6 +52,24 @@ create index if not exists interviews_user_id_created_at_idx
   on public.interviews(user_id, created_at desc);
 
 -- =============================================================
+-- rate_limits: per-user, per-bucket request log used by
+-- lib/rate-limit.ts to cap LLM-backed endpoint calls.
+--   Rows are inserted on every accepted request and counted within a
+--   rolling window to enforce a per-user budget. Cleanup is the caller's
+--   responsibility — schedule a daily pg_cron / Supabase cron job:
+--     delete from public.rate_limits where created_at < now() - interval '7 days';
+-- =============================================================
+create table if not exists public.rate_limits (
+  id         bigserial primary key,
+  user_id    uuid not null references auth.users(id) on delete cascade,
+  bucket     text not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists rate_limits_user_bucket_created_at_idx
+  on public.rate_limits(user_id, bucket, created_at desc);
+
+-- =============================================================
 -- updated_at trigger for profiles
 -- =============================================================
 create or replace function public.set_updated_at()
@@ -69,8 +87,9 @@ create trigger profiles_set_updated_at
 -- =============================================================
 -- Row Level Security — users can only see/edit their own rows
 -- =============================================================
-alter table public.profiles   enable row level security;
-alter table public.interviews enable row level security;
+alter table public.profiles    enable row level security;
+alter table public.interviews  enable row level security;
+alter table public.rate_limits enable row level security;
 
 drop policy if exists "profiles_select_own" on public.profiles;
 drop policy if exists "profiles_insert_own" on public.profiles;
@@ -91,3 +110,10 @@ create policy "interviews_insert_own" on public.interviews
   for insert with check (auth.uid() = user_id);
 create policy "interviews_update_own" on public.interviews
   for update using (auth.uid() = user_id);
+
+drop policy if exists "rate_limits_select_own" on public.rate_limits;
+drop policy if exists "rate_limits_insert_own" on public.rate_limits;
+create policy "rate_limits_select_own" on public.rate_limits
+  for select using (auth.uid() = user_id);
+create policy "rate_limits_insert_own" on public.rate_limits
+  for insert with check (auth.uid() = user_id);
