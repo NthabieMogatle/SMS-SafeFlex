@@ -91,6 +91,12 @@ input bool   UseCHoCH         = true;   // Change of Character confirmation
 input group "=== STRICT SMC ENTRY RULES ==="
 input bool   SniperOnlyMode          = true;   // TRUE = only trade full strict SMC sequence
 input bool   RequireStrictOBTouch    = true;   // Price/candle must actually tap OB, not just be near it
+// OBTapTolerancePct: relax the OB-tap requirement by N% of the OB height.
+// At 0, behavior is bit-identical to legacy strict tap (priceInside || lastTapped).
+// At >0, price/last-candle wick is treated as "tapped" if it comes within
+// (OBTapTolerancePct/100 * OBheight) of the nearer OB edge on the approach side.
+// Used only when RequireStrictOBTouch=true; ignored otherwise.
+input double OBTapTolerancePct       = 15.0;   // % of OB height; 0 = strict tap required
 input bool   RequireFVGConfluence    = false;  // FALSE = FVG counts as confirmation, but is not mandatory
 input bool   RequireRejectionCandle  = true;   // Require closed rejection candle after OB/FVG tap
 input bool   RequireCHoCHStrict      = false;  // FALSE = CHoCH counts as confirmation, but is not mandatory
