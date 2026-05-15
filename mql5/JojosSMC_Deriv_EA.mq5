@@ -603,24 +603,52 @@ bool DetectSetup1(string symbol, string sn, string tradeType, SMCSignal &sig)
    GetTimeframes(tradeType, biasTF, liqTF, bosTF, entryTF);
 
    MarketStructure ms = GetMarketStructure(symbol, biasTF);
-   if(!ms.valid || ms.trend == "ranging") return false;
+   if(!ms.valid || ms.trend == "ranging")
+   {
+      Print("[STRICT SKIP] ", symbol, " Setup1: no clean trend on bias TF (invalid or ranging)");
+      return false;
+   }
 
    bool sslSwept = false, bslSwept = false;
    double sweepLevel = 0;
-   if(!DetectLiquiditySweep(symbol, liqTF, sslSwept, bslSwept, sweepLevel)) return false;
+   if(!DetectLiquiditySweep(symbol, liqTF, sslSwept, bslSwept, sweepLevel))
+   {
+      Print("[STRICT SKIP] ", symbol, " Setup1: no liquidity sweep on liq TF");
+      return false;
+   }
 
-   if(ms.trend == "bullish" && !sslSwept) return false;
-   if(ms.trend == "bearish" && !bslSwept) return false;
+   if(ms.trend == "bullish" && !sslSwept)
+   {
+      Print("[STRICT SKIP] ", symbol, " Setup1: bullish trend but SSL not swept");
+      return false;
+   }
+   if(ms.trend == "bearish" && !bslSwept)
+   {
+      Print("[STRICT SKIP] ", symbol, " Setup1: bearish trend but BSL not swept");
+      return false;
+   }
 
    int direction = (sslSwept && ms.trend == "bullish") ? 1 : -1;
 
-   if(!DetectBOS(symbol, bosTF, direction)) return false;
+   if(!DetectBOS(symbol, bosTF, direction))
+   {
+      Print("[STRICT SKIP] ", symbol, " Setup1: no BOS in setup direction");
+      return false;
+   }
 
    OrderBlock ob;
-   if(!FindOrderBlock(symbol, entryTF, direction, ob)) return false;
+   if(!FindOrderBlock(symbol, entryTF, direction, ob))
+   {
+      Print("[STRICT SKIP] ", symbol, " Setup1: no valid OB found on entry TF");
+      return false;
+   }
 
    double currentPrice = SymbolInfoDouble(symbol, SYMBOL_BID);
-   if(!IsPriceNearOB(currentPrice, ob, direction)) return false;
+   if(!IsPriceNearOB(currentPrice, ob, direction))
+   {
+      Print("[STRICT SKIP] ", symbol, " Setup1: price not near OB");
+      return false;
+   }
 
    // -- CONFLUENCE
    bool hasFVG = UseFVG         ? DetectFVG(symbol, entryTF, direction)          : false;
@@ -644,11 +672,19 @@ bool DetectSetup1(string symbol, string sn, string tradeType, SMCSignal &sig)
    double entry = GetOBMitigationEntry(symbol, ob, direction);
    double sl    = GetOBStopLoss(symbol, ob, direction);
    double slD   = MathAbs(entry - sl);
-   if(slD <= 0) return false;
+   if(slD <= 0)
+   {
+      Print("[STRICT SKIP] ", symbol, " Setup1: SL distance is zero");
+      return false;
+   }
 
    // Reject unrealistically tiny SL (noise OB filter)
    double minSLDist = entry * 0.0005;
-   if(slD < minSLDist) return false;
+   if(slD < minSLDist)
+   {
+      Print("[STRICT SKIP] ", symbol, " Setup1: SL too tight (< 0.05% of price)");
+      return false;
+   }
 
    // TP = Previous swing HIGH (BUY) or swing LOW (SELL) per Phineas book
    double tp1 = GetSwingTP(symbol, getTpTF(tradeType), direction, entry, 1);
@@ -658,7 +694,11 @@ bool DetectSetup1(string symbol, string sn, string tradeType, SMCSignal &sig)
 
    double rr = MathAbs(tp1 - entry) / slD;
    // Cap R:R at 20 ? anything above signals a bad SL calculation
-   if(rr < MinRR || rr > 20.0) return false;
+   if(rr < MinRR || rr > 20.0)
+   {
+      Print("[STRICT SKIP] ", symbol, " Setup1: R:R ", DoubleToString(rr, 2), " out of bounds (need >= ", DoubleToString(MinRR, 2), ", <= 20.0)");
+      return false;
+   }
 
    int confidence = 50;
    if(hasFVG)  confidence += 8;
@@ -668,7 +708,11 @@ bool DetectSetup1(string symbol, string sn, string tradeType, SMCSignal &sig)
    if(hasQML)  confidence += 15;
    if(hasBB)   confidence += 7;
    confidence = MathMin(confidence, 100);
-   if(confidence < MinConfidence) return false;
+   if(confidence < MinConfidence)
+   {
+      Print("[STRICT SKIP] ", symbol, " Setup1: confidence ", confidence, " below MinConfidence ", MinConfidence);
+      return false;
+   }
 
    string entryType = (hasQML || hasCH) ? "CONFIRMATION ENTRY" : "RISK ENTRY";
    string details   = BuildDetails1(sn, tradeType, entryType, biasTF, liqTF, bosTF, entryTF,
@@ -690,18 +734,38 @@ bool DetectSetup2(string symbol, string sn, string tradeType, SMCSignal &sig)
    GetTimeframes(tradeType, biasTF, liqTF, bosTF, entryTF);
 
    MarketStructure ms = GetMarketStructure(symbol, biasTF);
-   if(!ms.valid) return false;
+   if(!ms.valid)
+   {
+      Print("[STRICT SKIP] ", symbol, " Setup2: market structure invalid on bias TF");
+      return false;
+   }
 
    int smsDir = 0;
    string smsDetail = "";
-   if(!DetectSMS(symbol, liqTF, smsDir, smsDetail)) return false;
-   if(!DetectBOS(symbol, bosTF, smsDir)) return false;
+   if(!DetectSMS(symbol, liqTF, smsDir, smsDetail))
+   {
+      Print("[STRICT SKIP] ", symbol, " Setup2: no SMS detected on liq TF");
+      return false;
+   }
+   if(!DetectBOS(symbol, bosTF, smsDir))
+   {
+      Print("[STRICT SKIP] ", symbol, " Setup2: no BMS in SMS direction");
+      return false;
+   }
 
    OrderBlock ob;
-   if(!FindOrderBlock(symbol, entryTF, smsDir, ob)) return false;
+   if(!FindOrderBlock(symbol, entryTF, smsDir, ob))
+   {
+      Print("[STRICT SKIP] ", symbol, " Setup2: no valid OB found on entry TF");
+      return false;
+   }
 
    double currentPrice = SymbolInfoDouble(symbol, SYMBOL_BID);
-   if(!IsPriceNearOB(currentPrice, ob, smsDir)) return false;
+   if(!IsPriceNearOB(currentPrice, ob, smsDir))
+   {
+      Print("[STRICT SKIP] ", symbol, " Setup2: price not near OB");
+      return false;
+   }
 
    bool hasFVG = UseFVG         ? DetectFVG(symbol, entryTF, smsDir)          : false;
    bool hasCH  = UseCHoCH       ? DetectCHoCH(symbol, bosTF, smsDir)          : false;
@@ -724,12 +788,20 @@ bool DetectSetup2(string symbol, string sn, string tradeType, SMCSignal &sig)
    double entry = GetOBMitigationEntry(symbol, ob, smsDir);
    double sl    = GetOBStopLoss(symbol, ob, smsDir);
    double slD   = MathAbs(entry - sl);
-   if(slD <= 0) return false;
+   if(slD <= 0)
+   {
+      Print("[STRICT SKIP] ", symbol, " Setup2: SL distance is zero");
+      return false;
+   }
 
    // Reject if SL is unrealistically tiny (less than 0.05% of price)
    // This filters out noise OBs that produce 0.79 point SLs
    double minSLDist = entry * 0.0005;  // 0.05% of price
-   if(slD < minSLDist) return false;
+   if(slD < minSLDist)
+   {
+      Print("[STRICT SKIP] ", symbol, " Setup2: SL too tight (< 0.05% of price)");
+      return false;
+   }
 
    // TP = Previous swing HIGH (BUY) or swing LOW (SELL) per Phineas book
    double tp1 = GetSwingTP(symbol, getTpTF(tradeType), smsDir, entry, 1);
@@ -739,7 +811,11 @@ bool DetectSetup2(string symbol, string sn, string tradeType, SMCSignal &sig)
 
    double rr = MathAbs(tp1 - entry) / slD;
    // Cap R:R at 20 ? anything above is a sign of bad SL calculation
-   if(rr < MinRR || rr > 20.0) return false;
+   if(rr < MinRR || rr > 20.0)
+   {
+      Print("[STRICT SKIP] ", symbol, " Setup2: R:R ", DoubleToString(rr, 2), " out of bounds (need >= ", DoubleToString(MinRR, 2), ", <= 20.0)");
+      return false;
+   }
 
    int confidence = 45;
    if(hasFVG)  confidence += 8;
@@ -749,7 +825,11 @@ bool DetectSetup2(string symbol, string sn, string tradeType, SMCSignal &sig)
    if(hasQML)  confidence += 15;
    if(hasBB)   confidence += 7;
    confidence = MathMin(confidence, 100);
-   if(confidence < MinConfidence) return false;
+   if(confidence < MinConfidence)
+   {
+      Print("[STRICT SKIP] ", symbol, " Setup2: confidence ", confidence, " below MinConfidence ", MinConfidence);
+      return false;
+   }
 
    string entryType = (hasQML || hasCH) ? "CONFIRMATION ENTRY" : "RISK ENTRY";
    string details   = BuildDetails2(sn, tradeType, entryType, biasTF, liqTF, bosTF, entryTF,
