@@ -1190,8 +1190,17 @@ bool IsStrictOBTouch(string symbol, ENUM_TIMEFRAMES tf, OrderBlock &ob, int dire
    if(CopyLow(symbol,  tf, 0, 3, lows)  < 3) return false;
    if(CopyClose(symbol,tf, 0, 3, closes)< 3) return false;
 
-   bool priceInside = (price >= ob.bottom && price <= ob.top);
-   bool lastTapped  = (lows[1] <= ob.top && highs[1] >= ob.bottom);
+   // Approach-side tolerance: BUY extends ob.top upward, SELL extends ob.bottom
+   // downward. At OBTapTolerancePct=0 the effective edges equal the original
+   // edges and priceInside/lastTapped reduce to the legacy expressions exactly.
+   double tolerance    = (OBTapTolerancePct / 100.0) * (ob.top - ob.bottom);
+   double effectiveTop = (direction == 1) ? (ob.top + tolerance) : ob.top;
+   double effectiveBot = (direction == 1) ? ob.bottom : (ob.bottom - tolerance);
+
+   bool priceInside = (price >= effectiveBot && price <= effectiveTop);
+   bool lastTapped  = (lows[1] <= effectiveTop && highs[1] >= effectiveBot);
+   // closedAway is bound to the ORIGINAL OB edges by design: the rejection-
+   // confirmation invariant must hold against the true zone, not the relaxed one.
    bool closedAway  = (direction == 1) ? (closes[1] >= ob.bottom) : (closes[1] <= ob.top);
    return (priceInside || (lastTapped && closedAway));
 }
@@ -1283,7 +1292,7 @@ bool StrictEntryRulesPass(string symbol, ENUM_TIMEFRAMES entryTF, ENUM_TIMEFRAME
 
    // Core safety: price must actually return to the zone and reject from a CLOSED candle.
    if(RequireStrictOBTouch && !obTouch)
-      { reason = "OB not actually tapped"; return false; }
+      { reason = "OB not tapped within " + DoubleToString(OBTapTolerancePct, 1) + "% tolerance"; return false; }
    if(RequireRejectionCandle && !reject)
       { reason = "no closed rejection candle from zone"; return false; }
 
