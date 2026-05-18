@@ -242,6 +242,29 @@ double CalcLotSize(double slDist)
    return NormalizeLot(risk/(slDist/ts*tv));
 }
 
+// Pre-flight margin check. Without it, oversized lots on low-leverage
+// accounts (common on Deriv synthetics) produce retcode 10019 cascades
+// from trade.Buy/Sell. Returns true if the order is affordable; logs a
+// [SKIP] line and returns false otherwise.
+bool HasMarginFor(ENUM_ORDER_TYPE orderType, double lot, double price)
+{
+   double marginRequired = 0.0;
+   if(!OrderCalcMargin(orderType, Symbol(), lot, price, marginRequired))
+   {
+      Print("[SKIP] OrderCalcMargin failed: ", Symbol(), " err=", GetLastError());
+      return false;
+   }
+   double freeMargin = AccountInfoDouble(ACCOUNT_MARGIN_FREE);
+   if(marginRequired > freeMargin)
+   {
+      Print("[SKIP] Insufficient margin: need $", DoubleToString(marginRequired,2),
+            " have $", DoubleToString(freeMargin,2),
+            " for ", DoubleToString(lot,3), " lots on ", Symbol());
+      return false;
+   }
+   return true;
+}
+
 //=== POSITION =======================================================
 bool HasOpenPosition()
 {
@@ -594,7 +617,8 @@ void OnTick()
       lastSignalDir="BUY";
       lastSignal=StringFormat("BUY @ %s  SL %s  TP %s",FmtPrice(entry),FmtPrice(sl),FmtPrice(tp));
       SendAlerts("BUY",entry,sl,tp,lots);
-      if(AutoTrade&&lots>0) trade.Buy(lots,Symbol(),entry,sl,tp,"BreakoutPA BUY");
+      if(AutoTrade&&lots>0 && HasMarginFor(ORDER_TYPE_BUY,lots,entry))
+         trade.Buy(lots,Symbol(),entry,sl,tp,"BreakoutPA BUY");
       UpdateDashboard(res,sup,atr,sess);
    }
 
@@ -607,7 +631,8 @@ void OnTick()
       lastSignalDir="SELL";
       lastSignal=StringFormat("SELL @ %s  SL %s  TP %s",FmtPrice(entry),FmtPrice(sl),FmtPrice(tp));
       SendAlerts("SELL",entry,sl,tp,lots);
-      if(AutoTrade&&lots>0) trade.Sell(lots,Symbol(),entry,sl,tp,"BreakoutPA SELL");
+      if(AutoTrade&&lots>0 && HasMarginFor(ORDER_TYPE_SELL,lots,entry))
+         trade.Sell(lots,Symbol(),entry,sl,tp,"BreakoutPA SELL");
       UpdateDashboard(res,sup,atr,sess);
    }
 }
