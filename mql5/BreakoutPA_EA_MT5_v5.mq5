@@ -87,11 +87,15 @@ string   lastSignal     = "WAITING...";
 string   lastSignalDir  = "";
 
 //=== INSTRUMENT =====================================================
-enum ENUM_INSTRUMENT { INST_FOREX, INST_GOLD, INST_SILVER, INST_CRYPTO, INST_INDEX, INST_OTHER };
+enum ENUM_INSTRUMENT { INST_FOREX, INST_GOLD, INST_SILVER, INST_CRYPTO, INST_INDEX, INST_SYNTHETIC, INST_OTHER };
 
 ENUM_INSTRUMENT GetInstrumentType()
 {
    string s = Symbol();
+   // Deriv synthetic volatility indices come in long-form ("Volatility 75 Index",
+   // "Volatility 100 (1s) Index") and whitelabel short-form ("VOL_75", "VOL_100_1S").
+   // Check before the forex length fallback so the long form doesn't fall through.
+   if(StringFind(s,"Volatility")>=0 || StringFind(s,"VOL_")>=0)                 return INST_SYNTHETIC;
    if(StringFind(s,"XAG")>=0 || StringFind(s,"SILVER")>=0)                     return INST_SILVER;
    if(StringFind(s,"XAU")>=0 || StringFind(s,"GOLD")>=0)                       return INST_GOLD;
    if(StringFind(s,"BTC")>=0 || StringFind(s,"ETH")>=0 ||
@@ -110,12 +114,13 @@ string InstrumentName()
 {
    switch(GetInstrumentType())
    {
-      case INST_GOLD:   return "GOLD";
-      case INST_SILVER: return "SILVER";
-      case INST_CRYPTO: return "CRYPTO";
-      case INST_INDEX:  return "INDEX";
-      case INST_FOREX:  return "FOREX";
-      default:          return "CFD";
+      case INST_GOLD:      return "GOLD";
+      case INST_SILVER:    return "SILVER";
+      case INST_CRYPTO:    return "CRYPTO";
+      case INST_INDEX:     return "INDEX";
+      case INST_SYNTHETIC: return "VOL INDEX";
+      case INST_FOREX:     return "FOREX";
+      default:             return "CFD";
    }
 }
 
@@ -123,11 +128,16 @@ int PriceDecimals()
 {
    switch(GetInstrumentType())
    {
-      case INST_INDEX:  return 2;
-      case INST_GOLD:   return 2;
-      case INST_SILVER: return 3;
-      case INST_CRYPTO: return 2;
-      default:          return _Digits;
+      case INST_INDEX:     return 2;
+      case INST_GOLD:      return 2;
+      case INST_SILVER:    return 3;
+      case INST_CRYPTO:    return 2;
+      // Synthetic digits vary per index (V10/V25/V75/V100 and their 1s variants
+      // each have their own precision). Defer to _Digits which MT5 sets per
+      // symbol — explicit case documents that this is intentional, not a fall-
+      // through.
+      case INST_SYNTHETIC: return _Digits;
+      default:             return _Digits;
    }
 }
 
