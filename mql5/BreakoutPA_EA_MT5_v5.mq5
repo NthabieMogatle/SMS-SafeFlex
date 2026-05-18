@@ -40,6 +40,9 @@ input bool   UseTrailingStop = true;
 input double TrailATR_Multi  = 1.0;
 input double TrailStep_Multi = 0.3;
 
+input group "=== Safety ==="
+input double MaxDailyLossPct = 3.0;    // Max daily loss % before EA stops opening trades (0 = off)
+
 input group "=== Sessions (Server Hour) ==="
 input bool   LondonSession   = false;
 input int    LondonOpen      = 8;
@@ -85,6 +88,10 @@ double   worstTrade     = 0.0;
 ulong    lastDealTicket = 0;
 string   lastSignal     = "WAITING...";
 string   lastSignalDir  = "";
+
+double   dayStartBalance = 0.0;
+datetime lastTradeDay    = 0;
+bool     dailyLossWarned = false;
 
 //=== INSTRUMENT =====================================================
 enum ENUM_INSTRUMENT { INST_FOREX, INST_GOLD, INST_SILVER, INST_CRYPTO, INST_INDEX, INST_SYNTHETIC, INST_OTHER };
@@ -483,6 +490,42 @@ void DeleteDashboard()
    ChartRedraw();
 }
 
+//=== SAFETY: DAILY LOSS LIMIT =======================================
+void CheckDailyReset()
+{
+   // Re-anchor dayStartBalance on day rollover (server day). Also seeds the
+   // anchor on first call when lastTradeDay is still 0.
+   MqlDateTime dt;     TimeToStruct(TimeCurrent(), dt);
+   MqlDateTime lastDt; TimeToStruct(lastTradeDay,  lastDt);
+   if(dt.day != lastDt.day || lastTradeDay == 0)
+   {
+      dayStartBalance = AccountInfoDouble(ACCOUNT_BALANCE);
+      lastTradeDay    = TimeCurrent();
+      dailyLossWarned = false;
+   }
+}
+
+bool IsDailyLossExceeded()
+{
+   if(MaxDailyLossPct <= 0) return false;   // 0 disables the cap
+   double anchor = (dayStartBalance > 0 ? dayStartBalance : AccountInfoDouble(ACCOUNT_BALANCE));
+   double eq     = AccountInfoDouble(ACCOUNT_EQUITY);
+   double maxLoss = anchor * MaxDailyLossPct / 100.0;
+   if((anchor - eq) >= maxLoss)
+   {
+      if(!dailyLossWarned)
+      {
+         Print("[STOP] Daily loss limit hit (", DoubleToString(MaxDailyLossPct,2),
+               "% of $", DoubleToString(anchor,2),
+               ") equity=$", DoubleToString(eq,2),
+               " — no new trades today.");
+         dailyLossWarned = true;
+      }
+      return true;
+   }
+   return false;
+}
+
 //=== INIT ===========================================================
 int OnInit()
 {
@@ -492,6 +535,7 @@ int OnInit()
    if(atrHandle==INVALID_HANDLE){Alert("ATR init failed");return INIT_FAILED;}
    ArraySetAsSeries(atrBuffer,true);
    UpdatePerformanceStats();
+   CheckDailyReset();
    Print(EA_Name," | ",Symbol()," | ",InstrumentName()," | ",AutoTrade?"AUTO":"SIGNAL ONLY");
    return INIT_SUCCEEDED;
 }
@@ -509,6 +553,7 @@ void OnTick()
    if(CopyBuffer(atrHandle,0,0,3,atrBuffer)<3) return;
    if(AutoTrade) ManageTrailingStop();
    UpdatePerformanceStats();
+   CheckDailyReset();
 
    if(iTime(Symbol(),PERIOD_CURRENT,0)==lastBarTime) return;
    lastBarTime=iTime(Symbol(),PERIOD_CURRENT,0);
@@ -522,6 +567,12 @@ void OnTick()
    lastSignal="WAITING..."; lastSignalDir="";
    UpdateDashboard(res,sup,atr,sess);
    if(!sess||HasOpenPosition()) return;
+   if(IsDailyLossExceeded())
+   {
+      lastSignal = "STOPPED: daily loss limit";
+      UpdateDashboard(res,sup,atr,sess);
+      return;
+   }
 
    double c1=iClose(Symbol(),PERIOD_CURRENT,1);
 
