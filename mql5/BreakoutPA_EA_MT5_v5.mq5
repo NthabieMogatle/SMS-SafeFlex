@@ -219,8 +219,17 @@ double NormalizeLot(double lots)
    double mx=SymbolInfoDouble(Symbol(),SYMBOL_VOLUME_MAX);
    double st=SymbolInfoDouble(Symbol(),SYMBOL_VOLUME_STEP);
    if(st<=0)st=0.01;
+   // Step-aware decimal precision. MathFloor(lots/st)*st can land on
+   // 0.122999... in float; without a NormalizeDouble lock to the step's
+   // digit count, some brokers reject the implied precision. Computing
+   // stepDigits from the step itself keeps 0.001-step instruments correct
+   // (where a hardcoded NormalizeDouble(_, 2) would round 0.001 -> 0.00).
+   int stepDigits = (st >= 1.0) ? 0 : (int)MathCeil(-MathLog10(st));
+   if(stepDigits < 0) stepDigits = 0;
+   if(stepDigits > 8) stepDigits = 8;
    lots=MathFloor(lots/st)*st;
-   return MathMax(mn,MathMin(mx,lots));
+   lots=MathMax(mn,MathMin(mx,lots));
+   return NormalizeDouble(lots, stepDigits);
 }
 double CalcLotSize(double slDist)
 {
