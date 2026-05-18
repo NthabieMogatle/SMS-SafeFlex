@@ -41,10 +41,10 @@ input double TrailATR_Multi  = 1.0;
 input double TrailStep_Multi = 0.3;
 
 input group "=== Sessions (Server Hour) ==="
-input bool   LondonSession   = true;
+input bool   LondonSession   = false;
 input int    LondonOpen      = 8;
 input int    LondonClose     = 12;
-input bool   NewYorkSession  = true;
+input bool   NewYorkSession  = false;
 input int    NYOpen          = 13;
 input int    NYClose         = 17;
 input bool   AsianSession    = false;
@@ -136,6 +136,8 @@ string FmtPrice(double p) { return DoubleToString(p, PriceDecimals()); }
 //=== SESSION ========================================================
 bool IsActiveSession()
 {
+   // No session filter requested -> trade 24/7 (synthetic-index default).
+   if(!LondonSession && !NewYorkSession && !AsianSession) return true;
    MqlDateTime tm;
    TimeToStruct(TimeCurrent(), tm);
    int h = tm.hour;
