@@ -41,8 +41,10 @@ input double TrailATR_Multi  = 1.0;
 input double TrailStep_Multi = 0.3;
 
 input group "=== Safety ==="
-input double MaxDailyLossPct = 3.0;    // Max daily loss % before EA stops opening trades (0 = off)
-input int    MaxTradesPerDay = 5;      // Max auto-trades per day (0 = off; signals not counted)
+input double MaxDailyLossPct       = 3.0;    // Max daily loss % before EA stops opening trades (0 = off)
+input int    MaxTradesPerDay       = 5;      // Max auto-trades per day (0 = off; signals not counted)
+input int    MaxConsecutiveLosses  = 2;      // After X losses in a row, pause auto trading (0 = off)
+input int    LossCooldownMinutes   = 30;     // Auto-resume after X minutes (0 = manual reset only)
 
 input group "=== Sessions (Server Hour) ==="
 input bool   LondonSession   = false;
@@ -90,11 +92,15 @@ ulong    lastDealTicket = 0;
 string   lastSignal     = "WAITING...";
 string   lastSignalDir  = "";
 
-double   dayStartBalance = 0.0;
-datetime lastTradeDay    = 0;
-bool     dailyLossWarned = false;
-int      dailyTradeCount = 0;
-bool     maxTradesWarned = false;
+double   dayStartBalance   = 0.0;
+datetime lastTradeDay      = 0;
+bool     dailyLossWarned   = false;
+int      dailyTradeCount   = 0;
+bool     maxTradesWarned   = false;
+int      consecutiveLosses = 0;
+datetime lossBlockedSince  = 0;
+bool     streakWarned      = false;
+bool     initialStatsLoaded = false;   // suppresses streak/notify during OnInit history backfill
 
 //=== INSTRUMENT =====================================================
 enum ENUM_INSTRUMENT { INST_FOREX, INST_GOLD, INST_SILVER, INST_CRYPTO, INST_INDEX, INST_SYNTHETIC, INST_OTHER };
@@ -321,6 +327,48 @@ void UpdatePerformanceStats()
       totalTrades++; grossPnL+=p;
       if(p>=0){winTrades++;  totalProfit+=p; if(p>bestTrade)  bestTrade=p;}
       else    {lossTrades++; totalLoss  +=p; if(p<worstTrade) worstTrade=p;}
+
+      // Streak detection. Only runs after OnInit's history backfill has
+      // completed, so attaching the EA mid-session doesn't trigger warnings
+      // from old deals. Breakeven (|p| <= 0.01) is neutral and does not
+      // change the streak — matches the Deriv reference shape and is
+      // tighter than the cumulative-stats win/loss split above.
+      if(initialStatsLoaded)
+      {
+         if(p > 0.01)
+         {
+            if(consecutiveLosses > 0)
+               Print("[STREAK] Win — streak reset (was ", consecutiveLosses, ")");
+            consecutiveLosses = 0;
+            streakWarned      = false;
+         }
+         else if(p < -0.01)
+         {
+            consecutiveLosses++;
+            if(MaxConsecutiveLosses > 0 && consecutiveLosses >= MaxConsecutiveLosses && !streakWarned)
+            {
+               lossBlockedSince = TimeCurrent();
+               string cooldownTxt = LossCooldownMinutes > 0
+                  ? "cooldown " + IntegerToString(LossCooldownMinutes) + " min"
+                  : "manual reset required";
+               Print("[STOP] Consecutive losses reached (", consecutiveLosses,
+                     "/", MaxConsecutiveLosses, ") — ", cooldownTxt,
+                     " — signals continue, no new orders.");
+               if(PushNotify)
+               {
+                  string streakPush = StringFormat("%s: %d losses in a row. %s. Signals continue.",
+                                                   EA_Name, consecutiveLosses,
+                                                   LossCooldownMinutes > 0
+                                                      ? "Auto-resume in " + IntegerToString(LossCooldownMinutes) + " min"
+                                                      : "Manual reset required");
+                  if(StringLen(streakPush) > 250) streakPush = StringSubstr(streakPush, 0, 250);
+                  SendNotification(streakPush);
+               }
+               streakWarned = true;
+            }
+         }
+      }
+
       lastDealTicket=t;
    }
 }
@@ -542,6 +590,27 @@ void CheckDailyReset()
    }
 }
 
+bool IsLossCooldownActive()
+{
+   if(MaxConsecutiveLosses <= 0) return false;
+   if(consecutiveLosses < MaxConsecutiveLosses) return false;
+   if(LossCooldownMinutes > 0 && lossBlockedSince > 0)
+   {
+      int minsLeft = LossCooldownMinutes - (int)((TimeCurrent() - lossBlockedSince) / 60);
+      if(minsLeft <= 0)
+      {
+         Print("[RESUME] Loss cooldown expired — auto trading resumed.");
+         consecutiveLosses = 0;
+         lossBlockedSince  = 0;
+         streakWarned      = false;
+         return false;
+      }
+      return true;
+   }
+   // LossCooldownMinutes == 0 -> manual reset, stay blocked.
+   return true;
+}
+
 bool IsMaxTradesReached()
 {
    if(MaxTradesPerDay <= 0) return false;   // 0 disables the cap
@@ -588,6 +657,7 @@ int OnInit()
    if(atrHandle==INVALID_HANDLE){Alert("ATR init failed");return INIT_FAILED;}
    ArraySetAsSeries(atrBuffer,true);
    UpdatePerformanceStats();
+   initialStatsLoaded = true;   // streak detection arms only after history backfill
    CheckDailyReset();
    Print(EA_Name," | ",Symbol()," | ",InstrumentName()," | ",AutoTrade?"AUTO":"SIGNAL ONLY");
    return INIT_SUCCEEDED;
@@ -638,7 +708,7 @@ void OnTick()
       lastSignalDir="BUY";
       lastSignal=StringFormat("BUY @ %s  SL %s  TP %s",FmtPrice(entry),FmtPrice(sl),FmtPrice(tp));
       SendAlerts("BUY",entry,sl,tp,lots);
-      if(AutoTrade&&lots>0 && !IsMaxTradesReached() && HasMarginFor(ORDER_TYPE_BUY,lots,entry))
+      if(AutoTrade&&lots>0 && !IsMaxTradesReached() && !IsLossCooldownActive() && HasMarginFor(ORDER_TYPE_BUY,lots,entry))
       {
          // Capture trade.Buy() return so we only count successful sends
          // (deviates from the Deriv reference which increments unconditionally —
@@ -657,7 +727,7 @@ void OnTick()
       lastSignalDir="SELL";
       lastSignal=StringFormat("SELL @ %s  SL %s  TP %s",FmtPrice(entry),FmtPrice(sl),FmtPrice(tp));
       SendAlerts("SELL",entry,sl,tp,lots);
-      if(AutoTrade&&lots>0 && !IsMaxTradesReached() && HasMarginFor(ORDER_TYPE_SELL,lots,entry))
+      if(AutoTrade&&lots>0 && !IsMaxTradesReached() && !IsLossCooldownActive() && HasMarginFor(ORDER_TYPE_SELL,lots,entry))
       {
          if(trade.Sell(lots,Symbol(),entry,sl,tp,"BreakoutPA SELL")) dailyTradeCount++;
       }
