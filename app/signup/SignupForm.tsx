@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import PasswordInput from "@/components/ui/password-input";
 
 export default function SignupForm() {
   const router = useRouter();
@@ -100,15 +101,13 @@ export default function SignupForm() {
           <label className="mb-1 block text-sm font-medium" htmlFor="password">
             Password
           </label>
-          <input
+          <PasswordInput
             id="password"
-            type="password"
             required
             minLength={8}
             autoComplete="new-password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-md border border-foreground/20 bg-transparent px-3 py-2"
+            onChange={setPassword}
           />
           <p className="mt-1 text-xs text-foreground/50">
             8 characters minimum.

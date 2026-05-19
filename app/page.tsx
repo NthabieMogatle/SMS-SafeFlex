@@ -252,7 +252,7 @@ export default async function HomePage() {
           </div>
           <div className="rounded-md border border-cyan-500/30 bg-cyan-500/5 p-6">
             <p className="mb-1 text-sm font-medium text-cyan-300">Lifetime</p>
-            <p className="mb-4 text-3xl font-semibold">One-time</p>
+            <p className="mb-4 text-3xl font-semibold">$49</p>
             <ul className="mb-6 space-y-2 text-sm">
               <li className="flex gap-2">
                 <span className="text-cyan-400">✓</span>
