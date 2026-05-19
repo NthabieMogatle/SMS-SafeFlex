@@ -381,8 +381,19 @@ void SendAlerts(string dir,double entry,double sl,double tp,double lots)
                       :StringFormat("%.2f lots (%.1f%% risk)",lots,RiskPercent);
    string msg=StringFormat("%s [%s]\n%s  %s\nEntry : %s\nSL    : %s\nTP    : %s\nLot   : %s",
       EA_Name,mode,Symbol(),dir,FmtPrice(entry),FmtPrice(sl),FmtPrice(tp),ls);
+
+   // Compact push body. MT5 SendNotification has a ~255 char cap and silently
+   // drops over-length messages. Today's msg is ~130 chars on short symbols
+   // and stays under the limit, but a long broker symbol or future field
+   // addition could push it over without warning. Cap defensively here and
+   // keep the full msg for Alert/Email/Print.
+   string pushBody = StringFormat("%s %s %s E:%s SL:%s TP:%s %s",
+                                  EA_Name, dir, Symbol(),
+                                  FmtPrice(entry), FmtPrice(sl), FmtPrice(tp), ls);
+   if(StringLen(pushBody) > 250) pushBody = StringSubstr(pushBody, 0, 250);
+
    if(AlertOnSignal) Alert(msg);
-   if(PushNotify)    SendNotification(msg);
+   if(PushNotify)    SendNotification(pushBody);
    if(EmailAlert)    SendMail(EA_Name+" | "+Symbol()+" "+dir,msg);
    Print(msg);
 }
