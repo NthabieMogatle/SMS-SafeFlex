@@ -1,16 +1,13 @@
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import ApiTestClient from "./ApiTestClient";
 
 export const dynamic = "force-dynamic";
 
-export default async function ApiTestPage({
-  searchParams,
-}: {
-  searchParams: { key?: string };
-}) {
+export default async function ApiTestPage() {
   const expected = process.env.ADMIN_SECRET;
-  if (!expected || searchParams.key !== expected) {
+  if (!expected || headers().get("x-admin-secret") !== expected) {
     notFound();
   }
 

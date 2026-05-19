@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -103,13 +104,9 @@ async function runChecks(): Promise<Check[]> {
   return checks;
 }
 
-export default async function AdminHealthPage({
-  searchParams,
-}: {
-  searchParams: { key?: string };
-}) {
+export default async function AdminHealthPage() {
   const expected = process.env.ADMIN_SECRET;
-  if (!expected || searchParams.key !== expected) {
+  if (!expected || headers().get("x-admin-secret") !== expected) {
     notFound();
   }
 
