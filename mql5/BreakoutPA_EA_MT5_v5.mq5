@@ -45,6 +45,7 @@ input double MaxDailyLossPct       = 3.0;    // Max daily loss % before EA stops
 input int    MaxTradesPerDay       = 5;      // Max auto-trades per day (0 = off; signals not counted)
 input int    MaxConsecutiveLosses  = 2;      // After X losses in a row, pause auto trading (0 = off)
 input int    LossCooldownMinutes   = 30;     // Auto-resume after X minutes (0 = manual reset only)
+input double DailyProfitLockPct    = 3.0;    // Lock profits when up X% for the day (0 = off)
 
 input group "=== Sessions (Server Hour) ==="
 input bool   LondonSession   = false;
@@ -101,6 +102,7 @@ int      consecutiveLosses = 0;
 datetime lossBlockedSince  = 0;
 bool     streakWarned      = false;
 bool     initialStatsLoaded = false;   // suppresses streak/notify during OnInit history backfill
+bool     profitLockEngaged  = false;
 
 //=== INSTRUMENT =====================================================
 enum ENUM_INSTRUMENT { INST_FOREX, INST_GOLD, INST_SILVER, INST_CRYPTO, INST_INDEX, INST_SYNTHETIC, INST_OTHER };
@@ -593,11 +595,12 @@ void CheckDailyReset()
    MqlDateTime lastDt; TimeToStruct(lastTradeDay,  lastDt);
    if(dt.day != lastDt.day || lastTradeDay == 0)
    {
-      dayStartBalance = AccountInfoDouble(ACCOUNT_BALANCE);
-      lastTradeDay    = TimeCurrent();
-      dailyLossWarned = false;
-      dailyTradeCount = 0;
-      maxTradesWarned = false;
+      dayStartBalance    = AccountInfoDouble(ACCOUNT_BALANCE);
+      lastTradeDay       = TimeCurrent();
+      dailyLossWarned    = false;
+      dailyTradeCount    = 0;
+      maxTradesWarned    = false;
+      profitLockEngaged  = false;
    }
 }
 
@@ -632,6 +635,31 @@ bool IsMaxTradesReached()
          Print("[STOP] Max trades reached (", dailyTradeCount, "/", MaxTradesPerDay,
                ") — signals continue, no new orders today.");
          maxTradesWarned = true;
+      }
+      return true;
+   }
+   return false;
+}
+
+bool IsProfitLockEngaged()
+{
+   if(DailyProfitLockPct <= 0) return false;   // 0 disables the lock
+   if(dayStartBalance <= 0) return false;       // guard against zero-balance start
+   // Deliberate divergence from the Deriv reference: it compares against
+   // ACCOUNT_BALANCE; we use ACCOUNT_EQUITY so the lock counts open-trade
+   // unrealized P&L the same way the daily-loss check does. Keeps the two
+   // safety checks internally consistent.
+   double eq  = AccountInfoDouble(ACCOUNT_EQUITY);
+   double pct = (eq - dayStartBalance) / dayStartBalance * 100.0;
+   if(pct >= DailyProfitLockPct)
+   {
+      if(!profitLockEngaged)
+      {
+         Print("[LOCK] Profit lock engaged (+", DoubleToString(pct,2),
+               "% of $", DoubleToString(dayStartBalance,2),
+               ") equity=$", DoubleToString(eq,2),
+               " — no new trades today.");
+         profitLockEngaged = true;
       }
       return true;
    }
@@ -704,6 +732,12 @@ void OnTick()
    if(IsDailyLossExceeded())
    {
       lastSignal = "STOPPED: daily loss limit";
+      UpdateDashboard(res,sup,atr,sess);
+      return;
+   }
+   if(IsProfitLockEngaged())
+   {
+      lastSignal = "STOPPED: profit lock";
       UpdateDashboard(res,sup,atr,sess);
       return;
    }
