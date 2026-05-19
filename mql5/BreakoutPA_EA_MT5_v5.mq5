@@ -42,6 +42,7 @@ input double TrailStep_Multi = 0.3;
 
 input group "=== Safety ==="
 input double MaxDailyLossPct = 3.0;    // Max daily loss % before EA stops opening trades (0 = off)
+input int    MaxTradesPerDay = 5;      // Max auto-trades per day (0 = off; signals not counted)
 
 input group "=== Sessions (Server Hour) ==="
 input bool   LondonSession   = false;
@@ -92,6 +93,8 @@ string   lastSignalDir  = "";
 double   dayStartBalance = 0.0;
 datetime lastTradeDay    = 0;
 bool     dailyLossWarned = false;
+int      dailyTradeCount = 0;
+bool     maxTradesWarned = false;
 
 //=== INSTRUMENT =====================================================
 enum ENUM_INSTRUMENT { INST_FOREX, INST_GOLD, INST_SILVER, INST_CRYPTO, INST_INDEX, INST_SYNTHETIC, INST_OTHER };
@@ -534,7 +537,25 @@ void CheckDailyReset()
       dayStartBalance = AccountInfoDouble(ACCOUNT_BALANCE);
       lastTradeDay    = TimeCurrent();
       dailyLossWarned = false;
+      dailyTradeCount = 0;
+      maxTradesWarned = false;
    }
+}
+
+bool IsMaxTradesReached()
+{
+   if(MaxTradesPerDay <= 0) return false;   // 0 disables the cap
+   if(dailyTradeCount >= MaxTradesPerDay)
+   {
+      if(!maxTradesWarned)
+      {
+         Print("[STOP] Max trades reached (", dailyTradeCount, "/", MaxTradesPerDay,
+               ") — signals continue, no new orders today.");
+         maxTradesWarned = true;
+      }
+      return true;
+   }
+   return false;
 }
 
 bool IsDailyLossExceeded()
@@ -617,8 +638,13 @@ void OnTick()
       lastSignalDir="BUY";
       lastSignal=StringFormat("BUY @ %s  SL %s  TP %s",FmtPrice(entry),FmtPrice(sl),FmtPrice(tp));
       SendAlerts("BUY",entry,sl,tp,lots);
-      if(AutoTrade&&lots>0 && HasMarginFor(ORDER_TYPE_BUY,lots,entry))
-         trade.Buy(lots,Symbol(),entry,sl,tp,"BreakoutPA BUY");
+      if(AutoTrade&&lots>0 && !IsMaxTradesReached() && HasMarginFor(ORDER_TYPE_BUY,lots,entry))
+      {
+         // Capture trade.Buy() return so we only count successful sends
+         // (deviates from the Deriv reference which increments unconditionally —
+         // candidate for back-port to the Deriv EA).
+         if(trade.Buy(lots,Symbol(),entry,sl,tp,"BreakoutPA BUY")) dailyTradeCount++;
+      }
       UpdateDashboard(res,sup,atr,sess);
    }
 
@@ -631,8 +657,10 @@ void OnTick()
       lastSignalDir="SELL";
       lastSignal=StringFormat("SELL @ %s  SL %s  TP %s",FmtPrice(entry),FmtPrice(sl),FmtPrice(tp));
       SendAlerts("SELL",entry,sl,tp,lots);
-      if(AutoTrade&&lots>0 && HasMarginFor(ORDER_TYPE_SELL,lots,entry))
-         trade.Sell(lots,Symbol(),entry,sl,tp,"BreakoutPA SELL");
+      if(AutoTrade&&lots>0 && !IsMaxTradesReached() && HasMarginFor(ORDER_TYPE_SELL,lots,entry))
+      {
+         if(trade.Sell(lots,Symbol(),entry,sl,tp,"BreakoutPA SELL")) dailyTradeCount++;
+      }
       UpdateDashboard(res,sup,atr,sess);
    }
 }
