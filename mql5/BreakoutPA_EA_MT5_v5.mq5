@@ -455,8 +455,10 @@ void UpdateDashboard(double res,double sup,double atr,bool sess)
    int fs=9;           // font size
    int pad=10;         // left padding inside panel
 
-   // Row count: 1 title + 1 gap + 11 market rows + 1 sep + 1 gap + 8 perf rows = 23 rows + extras
-   int panelH = lh*24 + 28;
+   // Row count: 1 title + 1 gap + 11 market rows + 1 sep + 1 gap + 3 today
+   // rows + 1 sep + 1 gap + 8 perf rows = 27 rows + extras (Phase 3 added the
+   // "TODAY" group between MARKET STATUS and PERFORMANCE).
+   int panelH = lh*27 + 28;
 
    // ── Background panels ──────────────────────────────────────────
    DRect("dp_bg",  x,   y,         w, panelH,      C'13,17,25',  C'40,52,72');
@@ -516,6 +518,62 @@ void UpdateDashboard(double res,double sup,double atr,bool sess)
    DrawSeparator("dp_sep3",x+pad,r,w-pad*2); r+=6;
    DLabel("dp_mla",lx,r,"Signal",  cDim,  fs,false); DLabel("dp_mva",vx,r,lastSignal,cSig, fs,true);  r+=lh;
 
+   // ── TODAY section (operational / safety state) ─────────────────
+   r+=4;
+   DRect("dp_thdr",x,r,w,lh+4,C'20,26,38',C'40,52,72');
+   DLabel("dp_th", x+pad, r+2, "  TODAY",        C'120,160,220', 8, true);
+   r+=lh+6;
+
+   // Daily P&L (equity - dayStartBalance) — same definition the daily-loss
+   // and profit-lock gates use, so what shows here matches what they act on.
+   double dayPnL = (dayStartBalance > 0)
+                 ? (AccountInfoDouble(ACCOUNT_EQUITY) - dayStartBalance)
+                 : 0.0;
+   double dayPct = (dayStartBalance > 0) ? (dayPnL / dayStartBalance * 100.0) : 0.0;
+   color  cDayPnL;
+   if(dayPnL >= 0)
+      cDayPnL = (DailyProfitLockPct > 0 && dayPct >= DailyProfitLockPct * 0.9) ? cGold : cGreen;
+   else
+      cDayPnL = (MaxDailyLossPct > 0 && MathAbs(dayPct) >= MaxDailyLossPct * 0.9) ? cGold : cRed;
+   string dayPnLStr = StringFormat("%+.2f  (%+.2f%%)", dayPnL, dayPct);
+   string dayAnnot  = StringFormat("limit -%.0f%%  lock +%.0f%%", MaxDailyLossPct, DailyProfitLockPct);
+   DLabel("dp_dl1",lx,r,"Daily P&L", cDim,fs,false);
+   DLabel("dp_dv1",vx,r,dayPnLStr,   cDayPnL,fs,true); r+=lh;
+   DLabel("dp_dl1b",lx+pad*2,r,dayAnnot, cDim,fs-1,false); r+=lh-4;
+
+   // Trades today X / Y
+   string tradesStr = (MaxTradesPerDay > 0)
+      ? StringFormat("%d / %d", dailyTradeCount, MaxTradesPerDay)
+      : StringFormat("%d", dailyTradeCount);
+   color cTrades = (MaxTradesPerDay > 0 && dailyTradeCount >= MaxTradesPerDay) ? cGold : cText;
+   DLabel("dp_dl2",lx,r,"Trades today",cDim,fs,false);
+   DLabel("dp_dv2",vx,r,tradesStr, cTrades,fs,true); r+=lh;
+
+   // Streak — clean / N losses / cooling X min left
+   string streakStr;
+   color  cStreak;
+   if(consecutiveLosses <= 0)
+   {
+      streakStr = "clean";
+      cStreak   = cGreen;
+   }
+   else
+   {
+      streakStr = IntegerToString(consecutiveLosses) + " loss" + (consecutiveLosses > 1 ? "es" : "");
+      cStreak   = (MaxConsecutiveLosses > 0 && consecutiveLosses >= MaxConsecutiveLosses) ? cRed : cGold;
+      if(MaxConsecutiveLosses > 0 && consecutiveLosses >= MaxConsecutiveLosses
+         && LossCooldownMinutes > 0 && lossBlockedSince > 0)
+      {
+         int minsLeft = LossCooldownMinutes - (int)((TimeCurrent() - lossBlockedSince) / 60);
+         if(minsLeft < 0) minsLeft = 0;
+         streakStr += "  cooling " + IntegerToString(minsLeft) + " min";
+      }
+   }
+   DLabel("dp_dl3",lx,r,"Streak",   cDim,fs,false);
+   DLabel("dp_dv3",vx,r,streakStr,  cStreak,fs,true); r+=lh;
+
+   DrawSeparator("dp_sep5",x+pad,r,w-pad*2); r+=4;
+
    // ── PERFORMANCE section header ─────────────────────────────────
    r+=4;
    DRect("dp_phdr2",x,r,w,lh+4,C'20,26,38',C'40,52,72');
@@ -572,13 +630,14 @@ string TFtoString(ENUM_TIMEFRAMES tf)
 
 void DeleteDashboard()
 {
-   string n[]={"dp_bg","dp_hdr","dp_mhdr","dp_phdr","dp_phdr2",
-               "dp_t1","dp_t2","dp_sym","dp_mh","dp_ph",
-               "dp_sep1","dp_sep2","dp_sep3","dp_sep4",
+   string n[]={"dp_bg","dp_hdr","dp_mhdr","dp_phdr","dp_phdr2","dp_thdr",
+               "dp_t1","dp_t2","dp_sym","dp_mh","dp_ph","dp_th",
+               "dp_sep1","dp_sep2","dp_sep3","dp_sep4","dp_sep5",
                "dp_ml1","dp_mv1","dp_ml2","dp_mv2","dp_ml3","dp_mv3",
                "dp_ml4","dp_mv4","dp_ml5","dp_mv5","dp_ml6","dp_mv6",
                "dp_ml7","dp_mv7","dp_ml8","dp_mv8","dp_ml9","dp_mv9",
                "dp_mla","dp_mva",
+               "dp_dl1","dp_dv1","dp_dl1b","dp_dl2","dp_dv2","dp_dl3","dp_dv3",
                "dp_pl1","dp_pv1","dp_pl2","dp_pv2","dp_pl3","dp_pv3",
                "dp_pl4","dp_pv4","dp_pl5","dp_pv5","dp_pl6","dp_pv6",
                "dp_pl7","dp_pv7","dp_pl8","dp_pv8"};
