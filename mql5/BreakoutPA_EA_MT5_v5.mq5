@@ -411,7 +411,7 @@ void DrawSeparator(string name,int x,int y,int w)
    ObjectSetInteger(0,name,OBJPROP_YDISTANCE,y);
    ObjectSetInteger(0,name,OBJPROP_XSIZE,w);
    ObjectSetInteger(0,name,OBJPROP_YSIZE,1);
-   ObjectSetInteger(0,name,OBJPROP_BGCOLOR,C'45,55,75');
+   ObjectSetInteger(0,name,OBJPROP_BGCOLOR,C'40,70,80');
    ObjectSetInteger(0,name,OBJPROP_BORDER_TYPE,BORDER_FLAT);
    ObjectSetInteger(0,name,OBJPROP_BACK,false);
    ObjectSetInteger(0,name,OBJPROP_CORNER,CORNER_LEFT_UPPER);
@@ -461,21 +461,21 @@ void UpdateDashboard(double res,double sup,double atr,bool sess)
    int panelH = lh*27 + 28;
 
    // ── Background panels ──────────────────────────────────────────
-   DRect("dp_bg",  x,   y,         w, panelH,      C'13,17,25',  C'40,52,72');
-   DRect("dp_hdr", x,   y,         w, lh+10,       C'18,58,130', C'30,80,180');
-   DRect("dp_mhdr",x,   y+lh+14,   w, lh+4,        C'20,26,38',  C'40,52,72');
-   DRect("dp_phdr",x,   y+lh*14+18,w, lh+4,        C'20,26,38',  C'40,52,72');
+   DRect("dp_bg",  x,   y,         w, panelH,      C'10,14,20',  C'28,52,65');
+   DRect("dp_hdr", x,   y,         w, lh+10,       C'8,50,68',   C'35,135,160');
+   DRect("dp_mhdr",x,   y+lh+14,   w, lh+4,        C'16,28,34',  C'28,52,65');
+   DRect("dp_phdr",x,   y+lh*14+18,w, lh+4,        C'16,28,34',  C'28,52,65');
 
    // ── Header ─────────────────────────────────────────────────────
    DLabel("dp_t1", x+pad, y+4,      EA_Name,                    clrWhite,       10, true);
    DLabel("dp_t2", x+pad, y+4,      EA_Name,                    clrWhite,       10, true);
    // symbol + badge right-aligned area
    string badge = Symbol()+" ["+InstrumentName()+"]";
-   DLabel("dp_sym",x+130, y+6,      badge,                      C'150,200,255', 9,  false);
+   DLabel("dp_sym",x+130, y+6,      badge,                      C'130,215,225', 9,  false);
 
    // ── MARKET section header ──────────────────────────────────────
    int r = y+lh+16;
-   DLabel("dp_mh", x+pad, r+2,      "  MARKET STATUS",          C'120,160,220', 8,  true);
+   DLabel("dp_mh", x+pad, r+2,      "  MARKET STATUS",          C'80,195,205', 8,  true);
    r += lh+6;
 
    bool   inTrade  = HasOpenPosition();
@@ -488,12 +488,12 @@ void UpdateDashboard(double res,double sup,double atr,bool sess)
                    ? StringFormat("ON   (ATR x %.1f)",TrailATR_Multi)
                    : "OFF";
 
-   color cGreen = C'80,220,120';
-   color cRed   = C'230,80,80';
-   color cGold  = C'230,185,60';
-   color cBlue  = C'100,170,255';
-   color cDim   = C'90,100,120';
-   color cText  = C'195,200,215';
+   color cGreen = C'85,210,135';
+   color cRed   = C'235,90,90';
+   color cGold  = C'240,175,70';
+   color cBlue  = C'95,195,215';
+   color cDim   = C'80,105,118';
+   color cText  = C'200,215,220';
 
    color cMode  = AutoTrade ? cGreen : cGold;
    color cSess  = sess      ? cGreen : cRed;
@@ -520,8 +520,8 @@ void UpdateDashboard(double res,double sup,double atr,bool sess)
 
    // ── TODAY section (operational / safety state) ─────────────────
    r+=4;
-   DRect("dp_thdr",x,r,w,lh+4,C'20,26,38',C'40,52,72');
-   DLabel("dp_th", x+pad, r+2, "  TODAY",        C'120,160,220', 8, true);
+   DRect("dp_thdr",x,r,w,lh+4,C'16,28,34',C'28,52,65');
+   DLabel("dp_th", x+pad, r+2, "  TODAY",        C'80,195,205', 8, true);
    r+=lh+6;
 
    // Daily P&L (equity - dayStartBalance) — same definition the daily-loss
@@ -576,8 +576,8 @@ void UpdateDashboard(double res,double sup,double atr,bool sess)
 
    // ── PERFORMANCE section header ─────────────────────────────────
    r+=4;
-   DRect("dp_phdr2",x,r,w,lh+4,C'20,26,38',C'40,52,72');
-   DLabel("dp_ph", x+pad, r+2, "  PERFORMANCE",  C'120,160,220', 8, true);
+   DRect("dp_phdr2",x,r,w,lh+4,C'16,28,34',C'28,52,65');
+   DLabel("dp_ph", x+pad, r+2, "  PERFORMANCE",  C'80,195,205', 8, true);
    r+=lh+6;
 
    double winRate = totalTrades>0 ? (double)winTrades/totalTrades*100.0 : 0.0;
