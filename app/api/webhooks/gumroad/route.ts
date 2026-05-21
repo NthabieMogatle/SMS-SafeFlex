@@ -3,13 +3,15 @@ import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
 
-// The Gumroad product permalink that, together with seller_id, scopes
-// which incoming pings this route accepts. Hardcoded because it's a
-// public, stable, product-identifying value (not a secret).
-const GUMROAD_PRODUCT_PERMALINK = "fftsf";
-
 // Gumroad license-verification endpoint. Documented at
-// https://app.gumroad.com/api#licenses-verify.
+// https://app.gumroad.com/api#licenses-verify. The license-verify
+// call binds the ping to OUR product_id (GUMROAD_PRODUCT_ID), so it
+// also serves as the product-identity gate — verify will fail for a
+// license issued under any other product. This is why we don't also
+// gate on product_permalink in the cheap branch: it's redundant and,
+// in practice, Gumroad sends the full short_url (e.g.
+// "https://NTHABIEMOGATLE.gumroad.com/l/fftsf") rather than the bare
+// permalink, so a string-equality check against "fftsf" always misses.
 const GUMROAD_VERIFY_URL = "https://api.gumroad.com/v2/licenses/verify";
 
 type GumroadVerifyResponse = {
@@ -87,7 +89,6 @@ export async function POST(req: Request) {
     });
 
     const sellerId = fields["seller_id"];
-    const productPermalink = fields["product_permalink"];
     const licenseKey = (fields["license_key"] || "").trim();
     const isTest = fields["test"] === "true";
 
@@ -103,7 +104,9 @@ export async function POST(req: Request) {
       fields["resource_name"] === "refund" ||
       fields["refunded"] === "true";
 
-    // STEP 2(a) — cheap gate: seller_id + product_permalink.
+    // STEP 2(a) — cheap gate: seller_id only. Product identity is
+    // delegated to the licenses/verify call below, which fails for a
+    // license issued under any product other than GUMROAD_PRODUCT_ID.
     const expectedSeller = process.env.GUMROAD_SELLER_ID;
     if (!expectedSeller) {
       console.warn(
@@ -117,13 +120,6 @@ export async function POST(req: Request) {
         expected: expectedSeller,
       });
       return NextResponse.json({ ok: true, ignored: "seller_mismatch" });
-    }
-    if (productPermalink !== GUMROAD_PRODUCT_PERMALINK) {
-      console.warn("[gumroad-webhook] product_permalink mismatch", {
-        got: productPermalink,
-        expected: GUMROAD_PRODUCT_PERMALINK,
-      });
-      return NextResponse.json({ ok: true, ignored: "permalink_mismatch" });
     }
 
     // STEP 4 — refund branch. Mirrors the AppSumo refund logic:
