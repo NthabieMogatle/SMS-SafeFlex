@@ -153,6 +153,15 @@ export default function PrivacyPage() {
           <Wordmark variant="light" className="h-5 w-auto" />
         </Link>
         <div className="flex gap-4">
+          <Link href="/about" className="hover:text-foreground">
+            About
+          </Link>
+          <a
+            href="mailto:hello@elevra.app"
+            className="hover:text-foreground"
+          >
+            Support
+          </a>
           <Link href="/privacy" className="hover:text-foreground">
             Privacy
           </Link>

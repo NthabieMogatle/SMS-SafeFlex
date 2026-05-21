@@ -107,12 +107,45 @@ export default function TermsPage() {
           </h2>
           <p>
             AI Mock Interview Coach offers a free tier with usage
-            limits and a lifetime
-            tier offered through select partner platforms. The lifetime
-            tier is a one-time purchase that grants unlimited interviews
-            for the life of the service. Refund eligibility is governed
-            by the policy of the platform you purchased through; contact
-            the original seller for refund requests.
+            limits and a lifetime tier — a one-time purchase that grants
+            unlimited interviews for the life of the service.
+          </p>
+          <p className="mt-3">
+            How to get a refund depends on where you purchased AI Mock
+            Interview Coach.
+          </p>
+          <p className="mt-3">
+            <strong>Purchased through our Gumroad checkout:</strong> We
+            offer a full refund within 14 days of purchase, no questions
+            asked. Email{" "}
+            <a
+              href="mailto:hello@elevra.app"
+              className="underline decoration-foreground/40 underline-offset-2 hover:decoration-foreground"
+            >
+              hello@elevra.app
+            </a>{" "}
+            from the address you used at checkout and we&apos;ll take care
+            of it. After 14 days, refunds are at our discretion — but if
+            the tool isn&apos;t working as described, reach out and
+            we&apos;ll make it right.
+          </p>
+          <p className="mt-3">
+            <strong>Purchased through AppSumo:</strong> Refunds are handled
+            by AppSumo under their 60-day money-back guarantee. Request
+            yours from your AppSumo account (Products → select the tool →
+            Refund). Once refunded, your lifetime access code will be
+            deactivated.
+          </p>
+          <p className="mt-3">
+            Either way, the fastest fix is usually just emailing{" "}
+            <a
+              href="mailto:hello@elevra.app"
+              className="underline decoration-foreground/40 underline-offset-2 hover:decoration-foreground"
+            >
+              hello@elevra.app
+            </a>{" "}
+            first — most refund situations turn out to be something we can
+            sort in a few minutes.
           </p>
         </section>
 
@@ -207,6 +240,15 @@ export default function TermsPage() {
           <Wordmark variant="light" className="h-5 w-auto" />
         </Link>
         <div className="flex gap-4">
+          <Link href="/about" className="hover:text-foreground">
+            About
+          </Link>
+          <a
+            href="mailto:hello@elevra.app"
+            className="hover:text-foreground"
+          >
+            Support
+          </a>
           <Link href="/privacy" className="hover:text-foreground">
             Privacy
           </Link>
