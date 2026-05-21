@@ -227,12 +227,6 @@ export default function TermsPage() {
             .
           </p>
         </section>
-
-        <p className="rounded-md border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-300/90">
-          ⚠️ These are starter Terms generated for launch. Have a lawyer
-          review before relying on them in production, especially around
-          jurisdiction, refunds, and liability caps.
-        </p>
       </div>
 
       <footer className="mt-16 flex flex-col gap-3 border-t border-foreground/10 pt-6 text-xs text-foreground/50 sm:flex-row sm:items-center sm:justify-between">
