@@ -45,6 +45,20 @@ async function verifyLicense(
   productId: string,
   licenseKey: string,
 ): Promise<GumroadVerifyResponse | null> {
+  // Mask all but the last 6 chars of product_id so it can be diffed
+  // against the Vercel env var without the full ID landing in logs.
+  // Length is preserved with `*` padding so a wrong-length value (e.g.
+  // permalink "fftsf" accidentally set as the product ID) is visible.
+  const maskedProductId =
+    productId.length <= 6
+      ? "*".repeat(Math.max(productId.length, 1))
+      : "*".repeat(productId.length - 6) + productId.slice(-6);
+  const requestFields = {
+    product_id: maskedProductId,
+    license_key: licenseKey,
+    increment_uses_count: "false",
+  };
+
   try {
     const body = new URLSearchParams({
       product_id: productId,
@@ -56,14 +70,29 @@ async function verifyLicense(
       headers: { "content-type": "application/x-www-form-urlencoded" },
       body: body.toString(),
     });
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      console.warn("[gumroad-webhook] verify HTTP", res.status, text);
+    // Read the body as text FIRST so we always log it, even on non-2xx
+    // or non-JSON responses. Gumroad sometimes returns text/html error
+    // pages (e.g. for a malformed product_id) instead of JSON, and we
+    // want to see that exact body to diagnose.
+    const rawBody = await res.text().catch(() => "");
+    console.log("[gumroad-webhook] verify response", {
+      status: res.status,
+      ok: res.ok,
+      requestFields,
+      rawBody,
+    });
+    if (!res.ok) return null;
+    try {
+      return JSON.parse(rawBody) as GumroadVerifyResponse;
+    } catch (e) {
+      console.warn("[gumroad-webhook] verify body was not JSON", e);
       return null;
     }
-    return (await res.json()) as GumroadVerifyResponse;
   } catch (e) {
-    console.warn("[gumroad-webhook] verify threw", e);
+    console.warn("[gumroad-webhook] verify fetch threw", {
+      requestFields,
+      error: e,
+    });
     return null;
   }
 }
